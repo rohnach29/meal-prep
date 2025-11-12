@@ -223,6 +223,81 @@
         </div>
     </div>
 
+    <!-- Modal for Quantity Input -->
+    <div id="quantity-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Enter Quantity</h2>
+            <p id="quantity-item-name" style="margin-bottom: 1rem; color: var(--text-secondary);"></p>
+            <form id="quantity-form">
+                <div class="form-group">
+                    <label>Quantity (e.g., 1, 0.5, 1.5, 2)</label>
+                    <input type="number" id="quantity-input" min="0.01" step="0.01" value="1" required>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                        1 = full serving, 0.5 = half serving, 2 = double serving
+                    </p>
+                </div>
+                <button type="submit" class="btn btn-primary">Log Food</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Edit Food -->
+    <div id="edit-food-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Food</h2>
+            <form id="edit-food-form">
+                <input type="hidden" id="edit-food-id">
+                <div class="form-group">
+                    <label>Food Name *</label>
+                    <input type="text" id="edit-food-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Serving Size</label>
+                    <input type="text" id="edit-food-serving" placeholder="e.g., 1 cup, 100g">
+                </div>
+                <div class="form-group">
+                    <label>Calories *</label>
+                    <input type="number" id="edit-food-calories" required min="0" step="1">
+                </div>
+                <div class="form-group">
+                    <label>Protein (g)</label>
+                    <input type="number" id="edit-food-protein" min="0" step="0.1" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Carbs (g)</label>
+                    <input type="number" id="edit-food-carbs" min="0" step="0.1" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Fat (g)</label>
+                    <input type="number" id="edit-food-fat" min="0" step="0.1" value="0">
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Edit Log -->
+    <div id="edit-log-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Edit Log Entry</h2>
+            <p id="edit-log-item-name" style="margin-bottom: 1rem; color: var(--text-secondary);"></p>
+            <form id="edit-log-form">
+                <input type="hidden" id="edit-log-id">
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" id="edit-log-quantity" min="0.01" step="0.01" value="1" required>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                        1 = full serving, 0.5 = half serving, 2 = double serving
+                    </p>
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
     <script src="/db.js"></script>
     <script src="/app.js"></script>
 </body>

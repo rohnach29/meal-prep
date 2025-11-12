@@ -80,6 +80,9 @@ class MealPrepApp {
         document.getElementById('custom-food-form').addEventListener('submit', (e) => this.addCustomFood(e));
         document.getElementById('create-meal-form').addEventListener('submit', (e) => this.createMeal(e));
         document.getElementById('meal-food-search').addEventListener('input', (e) => this.searchFoodsForMeal(e.target.value));
+        document.getElementById('quantity-form').addEventListener('submit', (e) => this.submitQuantity(e));
+        document.getElementById('edit-food-form').addEventListener('submit', (e) => this.submitEditFood(e));
+        document.getElementById('edit-log-form').addEventListener('submit', (e) => this.submitEditLog(e));
 
         // Quick search
         document.getElementById('quick-search').addEventListener('input', (e) => this.quickSearch(e.target.value));
@@ -122,21 +125,22 @@ class MealPrepApp {
 
         // Calculate totals from logs
         for (const log of logs) {
+            const quantity = log.quantity || 1; // Default to 1 if not set
             if (log.type === 'food') {
                 const food = await db.getFood(log.itemId);
                 if (food) {
-                    totalCalories += food.calories || 0;
-                    totalProtein += food.protein || 0;
-                    totalCarbs += food.carbs || 0;
-                    totalFat += food.fat || 0;
+                    totalCalories += (food.calories || 0) * quantity;
+                    totalProtein += (food.protein || 0) * quantity;
+                    totalCarbs += (food.carbs || 0) * quantity;
+                    totalFat += (food.fat || 0) * quantity;
                 }
             } else if (log.type === 'meal') {
                 const meal = await db.getMeal(log.itemId);
                 if (meal) {
-                    totalCalories += meal.totalCalories || 0;
-                    totalProtein += meal.totalProtein || 0;
-                    totalCarbs += meal.totalCarbs || 0;
-                    totalFat += meal.totalFat || 0;
+                    totalCalories += (meal.totalCalories || 0) * quantity;
+                    totalProtein += (meal.totalProtein || 0) * quantity;
+                    totalCarbs += (meal.totalCarbs || 0) * quantity;
+                    totalFat += (meal.totalFat || 0) * quantity;
                 }
             }
         }
@@ -166,29 +170,39 @@ class MealPrepApp {
         for (const log of logs) {
             let item;
             let name;
-            let details;
+            let baseCalories;
+            let totalCalories;
+            let extraInfo;
+
+            const quantity = log.quantity || 1;
 
             if (log.type === 'food') {
                 item = await db.getFood(log.itemId);
                 name = item?.name || 'Unknown Food';
-                details = `${item?.calories || 0} cal • ${item?.serving || ''}`;
+                baseCalories = item?.calories || 0;
+                totalCalories = Math.round(baseCalories * quantity);
+                extraInfo = item?.serving || '';
             } else {
                 item = await db.getMeal(log.itemId);
                 name = item?.name || 'Unknown Meal';
-                details = `${item?.totalCalories || 0} cal • ${item?.foods?.length || 0} foods`;
+                baseCalories = item?.totalCalories || 0;
+                totalCalories = Math.round(baseCalories * quantity);
+                extraInfo = `${item?.foods?.length || 0} foods`;
             }
 
             const time = new Date(log.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            const quantityText = quantity !== 1 ? ` × ${quantity}` : '';
 
             const mealDiv = document.createElement('div');
             mealDiv.className = 'meal-item';
             mealDiv.innerHTML = `
                 <div class="meal-info">
-                    <div class="meal-name">${name}</div>
-                    <div class="meal-details">${details} • ${time}</div>
+                    <div class="meal-name">${name}${quantityText}</div>
+                    <div class="meal-details">${totalCalories} cal${extraInfo ? ` • ${extraInfo}` : ''} • ${time}</div>
                 </div>
                 <div class="meal-actions">
-                    <button class="btn-icon" onclick="app.deleteLog(${log.id})">🗑️</button>
+                    <button class="btn-icon" onclick="app.openEditLog(${log.id})" title="Edit quantity">✏️</button>
+                    <button class="btn-icon" onclick="app.deleteLog(${log.id})" title="Delete">🗑️</button>
                 </div>
             `;
             container.appendChild(mealDiv);
@@ -200,6 +214,39 @@ class MealPrepApp {
             await db.deleteLog(logId);
             await this.updateDashboard();
         }
+    }
+
+    async openEditLog(logId) {
+        const log = await db.getLog(logId);
+        if (!log) return;
+
+        // Get item name
+        let itemName = '';
+        if (log.type === 'food') {
+            const food = await db.getFood(log.itemId);
+            itemName = food?.name || 'Unknown Food';
+        } else {
+            const meal = await db.getMeal(log.itemId);
+            itemName = meal?.name || 'Unknown Meal';
+        }
+
+        document.getElementById('edit-log-id').value = logId;
+        document.getElementById('edit-log-item-name').textContent = `Editing: ${itemName}`;
+        document.getElementById('edit-log-quantity').value = log.quantity || 1;
+
+        document.getElementById('edit-log-modal').classList.add('active');
+    }
+
+    async submitEditLog(e) {
+        e.preventDefault();
+
+        const logId = parseInt(document.getElementById('edit-log-id').value);
+        const quantity = parseFloat(document.getElementById('edit-log-quantity').value);
+
+        await db.updateLog(logId, { quantity: quantity });
+        document.getElementById('edit-log-modal').classList.remove('active');
+        await this.updateDashboard();
+        this.showToast('Log entry updated successfully!');
     }
 
     // Quick Add
@@ -246,10 +293,40 @@ class MealPrepApp {
     }
 
     async logItem(type, itemId) {
-        await db.addLog({ type, itemId });
-        await this.updateDashboard();
+        // Store the pending log info
+        this.pendingLog = { type, itemId };
+
+        // Get item details to show name
+        let item;
+        if (type === 'food') {
+            item = await db.getFood(itemId);
+        } else {
+            item = await db.getMeal(itemId);
+        }
+
+        // Show quantity modal
+        document.getElementById('quantity-item-name').textContent = `Logging: ${item.name}`;
+        document.getElementById('quantity-input').value = 1;
+        document.getElementById('quantity-modal').classList.add('active');
         document.getElementById('quick-add-modal').classList.remove('active');
-        this.showToast(`${type === 'food' ? 'Food' : 'Meal'} logged successfully!`);
+    }
+
+    async submitQuantity(e) {
+        e.preventDefault();
+        const quantity = parseFloat(document.getElementById('quantity-input').value);
+
+        if (this.pendingLog) {
+            await db.addLog({
+                type: this.pendingLog.type,
+                itemId: this.pendingLog.itemId,
+                quantity: quantity
+            });
+
+            await this.updateDashboard();
+            document.getElementById('quantity-modal').classList.remove('active');
+            this.showToast(`${this.pendingLog.type === 'food' ? 'Food' : 'Meal'} logged successfully!`);
+            this.pendingLog = null;
+        }
     }
 
     // Foods
@@ -288,7 +365,8 @@ class MealPrepApp {
                     </div>
                 </div>
                 <div class="meal-actions">
-                    <button class="btn-icon" onclick="app.deleteFood(${food.id})">🗑️</button>
+                    <button class="btn-icon" onclick="app.openEditFood(${food.id})" title="Edit food">✏️</button>
+                    <button class="btn-icon" onclick="app.deleteFood(${food.id})" title="Delete">🗑️</button>
                 </div>
             `;
             container.appendChild(div);
@@ -300,6 +378,40 @@ class MealPrepApp {
             await db.deleteFood(foodId);
             await this.loadFoods();
         }
+    }
+
+    async openEditFood(foodId) {
+        const food = await db.getFood(foodId);
+        if (!food) return;
+
+        document.getElementById('edit-food-id').value = foodId;
+        document.getElementById('edit-food-name').value = food.name;
+        document.getElementById('edit-food-serving').value = food.serving || '';
+        document.getElementById('edit-food-calories').value = food.calories;
+        document.getElementById('edit-food-protein').value = food.protein;
+        document.getElementById('edit-food-carbs').value = food.carbs;
+        document.getElementById('edit-food-fat').value = food.fat;
+
+        document.getElementById('edit-food-modal').classList.add('active');
+    }
+
+    async submitEditFood(e) {
+        e.preventDefault();
+
+        const foodId = parseInt(document.getElementById('edit-food-id').value);
+        const foodData = {
+            name: document.getElementById('edit-food-name').value,
+            serving: document.getElementById('edit-food-serving').value,
+            calories: parseFloat(document.getElementById('edit-food-calories').value),
+            protein: parseFloat(document.getElementById('edit-food-protein').value),
+            carbs: parseFloat(document.getElementById('edit-food-carbs').value),
+            fat: parseFloat(document.getElementById('edit-food-fat').value)
+        };
+
+        await db.updateFood(foodId, foodData);
+        document.getElementById('edit-food-modal').classList.remove('active');
+        await this.loadFoods();
+        this.showToast('Food updated successfully!');
     }
 
     openCustomFoodModal() {

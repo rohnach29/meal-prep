@@ -98,6 +98,26 @@ class MealPrepDB {
         });
     }
 
+    async updateFood(id, foodData) {
+        const transaction = this.db.transaction(['foods'], 'readwrite');
+        const store = transaction.objectStore('foods');
+        return new Promise((resolve, reject) => {
+            const getRequest = store.get(id);
+            getRequest.onsuccess = () => {
+                const existingFood = getRequest.result;
+                const updatedFood = {
+                    ...existingFood,
+                    ...foodData,
+                    id: id // Preserve the ID
+                };
+                const putRequest = store.put(updatedFood);
+                putRequest.onsuccess = () => resolve(putRequest.result);
+                putRequest.onerror = () => reject(putRequest.error);
+            };
+            getRequest.onerror = () => reject(getRequest.error);
+        });
+    }
+
     async getFood(id) {
         const transaction = this.db.transaction(['foods'], 'readonly');
         const store = transaction.objectStore('foods');
@@ -219,6 +239,36 @@ class MealPrepDB {
         return new Promise((resolve, reject) => {
             const request = store.delete(id);
             request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async updateLog(id, logData) {
+        const transaction = this.db.transaction(['logs'], 'readwrite');
+        const store = transaction.objectStore('logs');
+        return new Promise((resolve, reject) => {
+            const getRequest = store.get(id);
+            getRequest.onsuccess = () => {
+                const existingLog = getRequest.result;
+                const updatedLog = {
+                    ...existingLog,
+                    ...logData,
+                    id: id // Preserve the ID
+                };
+                const putRequest = store.put(updatedLog);
+                putRequest.onsuccess = () => resolve(putRequest.result);
+                putRequest.onerror = () => reject(putRequest.error);
+            };
+            getRequest.onerror = () => reject(getRequest.error);
+        });
+    }
+
+    async getLog(id) {
+        const transaction = this.db.transaction(['logs'], 'readonly');
+        const store = transaction.objectStore('logs');
+        return new Promise((resolve, reject) => {
+            const request = store.get(id);
+            request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
     }
