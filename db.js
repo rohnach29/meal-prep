@@ -55,11 +55,63 @@ class MealPrepDB {
                     db.createObjectStore('settings', { keyPath: 'key' });
                 }
 
-                // Initialize default settings (only on fresh install)
+                // Initialize default settings and sample data (only on fresh install)
                 if (oldVersion === 0) {
                     const settingsStore = transaction.objectStore('settings');
                     settingsStore.put({ key: 'goals', calorieGoal: 2000, proteinGoal: 150, carbsGoal: 200, fatGoal: 65 });
                     settingsStore.put({ key: 'notifications', enabled: false, times: ['11:00', '15:00', '20:00'] });
+
+                    // Add sample foods for testing
+                    const foodStore = transaction.objectStore('foods');
+                    const now = Date.now();
+
+                    // Morning foods
+                    foodStore.add({ name: 'Scrambled Eggs', serving: '2 eggs', calories: 180, protein: 12, carbs: 2, fat: 14, timestamp: now - 100000 });
+                    foodStore.add({ name: 'Oatmeal', serving: '1 cup', calories: 150, protein: 5, carbs: 27, fat: 3, timestamp: now - 99000 });
+                    foodStore.add({ name: 'Greek Yogurt', serving: '1 cup', calories: 130, protein: 20, carbs: 9, fat: 0, timestamp: now - 98000 });
+                    foodStore.add({ name: 'Whole Wheat Toast', serving: '2 slices', calories: 160, protein: 8, carbs: 28, fat: 2, timestamp: now - 97000 });
+                    foodStore.add({ name: 'Banana', serving: '1 medium', calories: 105, protein: 1, carbs: 27, fat: 0, timestamp: now - 96000 });
+
+                    // Afternoon foods
+                    foodStore.add({ name: 'Grilled Chicken Salad', serving: '1 bowl', calories: 320, protein: 35, carbs: 15, fat: 12, timestamp: now - 95000 });
+                    foodStore.add({ name: 'Apple', serving: '1 medium', calories: 95, protein: 0, carbs: 25, fat: 0, timestamp: now - 94000 });
+                    foodStore.add({ name: 'Protein Shake', serving: '1 scoop', calories: 120, protein: 24, carbs: 3, fat: 1, timestamp: now - 93000 });
+                    foodStore.add({ name: 'Mixed Nuts', serving: '1 oz', calories: 170, protein: 6, carbs: 6, fat: 15, timestamp: now - 92000 });
+                    foodStore.add({ name: 'Hummus & Veggies', serving: '1 cup', calories: 140, protein: 5, carbs: 18, fat: 6, timestamp: now - 91000 });
+
+                    // Night foods
+                    foodStore.add({ name: 'Grilled Salmon', serving: '6 oz', calories: 350, protein: 40, carbs: 0, fat: 20, timestamp: now - 90000 });
+                    foodStore.add({ name: 'Brown Rice', serving: '1 cup', calories: 215, protein: 5, carbs: 45, fat: 2, timestamp: now - 89000 });
+                    foodStore.add({ name: 'Steamed Broccoli', serving: '1 cup', calories: 55, protein: 4, carbs: 11, fat: 0, timestamp: now - 88000 });
+                    foodStore.add({ name: 'Chicken Breast', serving: '6 oz', calories: 280, protein: 53, carbs: 0, fat: 6, timestamp: now - 87000 });
+                    foodStore.add({ name: 'Sweet Potato', serving: '1 medium', calories: 180, protein: 4, carbs: 41, fat: 0, timestamp: now - 86000 });
+
+                    // Add sample logs from yesterday for each time period
+                    const logStore = transaction.objectStore('logs');
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+                    // Morning logs (food IDs 1-5) - logged yesterday morning
+                    logStore.add({ type: 'food', itemId: 1, quantity: 1, date: yesterdayStr, timestamp: yesterday.setHours(8, 0, 0, 0), timeOfDay: 'morning' });
+                    logStore.add({ type: 'food', itemId: 2, quantity: 1, date: yesterdayStr, timestamp: yesterday.setHours(8, 30, 0, 0), timeOfDay: 'morning' });
+                    logStore.add({ type: 'food', itemId: 3, quantity: 0.5, date: yesterdayStr, timestamp: yesterday.setHours(9, 0, 0, 0), timeOfDay: 'morning' });
+                    logStore.add({ type: 'food', itemId: 4, quantity: 2, date: yesterdayStr, timestamp: yesterday.setHours(10, 0, 0, 0), timeOfDay: 'morning' });
+                    logStore.add({ type: 'food', itemId: 5, quantity: 1, date: yesterdayStr, timestamp: yesterday.setHours(11, 0, 0, 0), timeOfDay: 'morning' });
+
+                    // Afternoon logs (food IDs 6-10) - logged yesterday afternoon
+                    logStore.add({ type: 'food', itemId: 6, quantity: 1, date: yesterdayStr, timestamp: yesterday.setHours(13, 0, 0, 0), timeOfDay: 'afternoon' });
+                    logStore.add({ type: 'food', itemId: 7, quantity: 1, date: yesterdayStr, timestamp: yesterday.setHours(14, 0, 0, 0), timeOfDay: 'afternoon' });
+                    logStore.add({ type: 'food', itemId: 8, quantity: 1.5, date: yesterdayStr, timestamp: yesterday.setHours(15, 0, 0, 0), timeOfDay: 'afternoon' });
+                    logStore.add({ type: 'food', itemId: 9, quantity: 1, date: yesterdayStr, timestamp: yesterday.setHours(16, 0, 0, 0), timeOfDay: 'afternoon' });
+                    logStore.add({ type: 'food', itemId: 10, quantity: 1, date: yesterdayStr, timestamp: yesterday.setHours(16, 30, 0, 0), timeOfDay: 'afternoon' });
+
+                    // Night logs (food IDs 11-15) - logged yesterday night
+                    logStore.add({ type: 'food', itemId: 11, quantity: 1, date: yesterdayStr, timestamp: yesterday.setHours(18, 0, 0, 0), timeOfDay: 'night' });
+                    logStore.add({ type: 'food', itemId: 12, quantity: 1.5, date: yesterdayStr, timestamp: yesterday.setHours(18, 30, 0, 0), timeOfDay: 'night' });
+                    logStore.add({ type: 'food', itemId: 13, quantity: 2, date: yesterdayStr, timestamp: yesterday.setHours(19, 0, 0, 0), timeOfDay: 'night' });
+                    logStore.add({ type: 'food', itemId: 14, quantity: 1, date: yesterdayStr, timestamp: yesterday.setHours(20, 0, 0, 0), timeOfDay: 'night' });
+                    logStore.add({ type: 'food', itemId: 15, quantity: 1, date: yesterdayStr, timestamp: yesterday.setHours(21, 0, 0, 0), timeOfDay: 'night' });
                 }
             };
         });
