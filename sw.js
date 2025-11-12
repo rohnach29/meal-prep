@@ -170,11 +170,11 @@ async function showMealNotification() {
         if (recentLogs.length === 0) {
             // No recent items, show generic notification
             await self.registration.showNotification('MealPrep Reminder', {
-                body: 'Time to log your meal!',
+                body: 'Time to log your meal! Open the app to add foods.',
                 icon: '/icon-192.png',
                 badge: '/icon-192.png',
                 tag: 'meal-reminder',
-                requireInteraction: true
+                requireInteraction: false
             });
             return;
         }
@@ -188,32 +188,38 @@ async function showMealNotification() {
                     id: item.id,
                     name: item.name,
                     type: log.type,
-                    calories: log.type === 'food' ? item.calories : item.totalCalories
+                    calories: log.type === 'food' ? item.calories : item.totalCalories,
+                    serving: log.type === 'food' ? (item.serving || '') : `${item.foods?.length || 0} foods`
                 });
             }
         }
 
-        // Create notification with actions for each recent item
-        const actions = recentItems.map((item, index) => ({
-            action: `log-${item.type}-${item.id}`,
-            title: `${item.name} (${item.calories} cal)`
-        }));
+        // Send 5 separate notifications - one for each recent item
+        // This works on BOTH macOS and iPhone!
+        console.log(`Sending ${recentItems.length} separate notifications for quick logging`);
 
-        await self.registration.showNotification('Quick Log Your Meal', {
-            body: 'Tap a recent meal to log it quickly:',
-            icon: '/icon-192.png',
-            badge: '/icon-192.png',
-            tag: 'meal-reminder',
-            requireInteraction: true,
-            actions: actions,
-            data: {
-                recentItems: recentItems
-            }
-        });
+        for (let i = 0; i < recentItems.length; i++) {
+            const item = recentItems[i];
+            const emoji = item.type === 'food' ? '🍽️' : '🥗';
 
-        console.log('Meal notification shown with actions:', actions);
+            await self.registration.showNotification(`${emoji} ${item.name}`, {
+                body: `${item.calories} cal${item.serving ? ` • ${item.serving}` : ''}\n\nTap to log this ${item.type}!`,
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                tag: `meal-quick-log-${i}`, // Unique tag so all 5 show up
+                requireInteraction: false, // Allow auto-dismiss on mobile
+                data: {
+                    // Store the item info so we can log it on click
+                    itemType: item.type,
+                    itemId: item.id,
+                    itemName: item.name
+                }
+            });
+        }
+
+        console.log(`Successfully sent ${recentItems.length} meal notifications`);
     } catch (error) {
-        console.error('Error showing notification:', error);
+        console.error('Error showing meal notifications:', error);
     }
 }
 
@@ -221,66 +227,83 @@ async function showMealNotification() {
 self.addEventListener('notificationclick', async (event) => {
     event.notification.close();
 
-    const action = event.action;
     const data = event.notification.data;
 
-    if (action && action.startsWith('log-')) {
-        // Parse action: log-{type}-{id}
-        const parts = action.split('-');
-        const itemType = parts[1]; // 'food' or 'meal'
-        const itemId = parseInt(parts[2]);
-
+    // Check if this is a quick-log notification (has itemType and itemId)
+    if (data && data.itemType && data.itemId) {
         // Log the item to database
-        try {
-            const db = await openDatabase();
-            const transaction = db.transaction(['logs'], 'readwrite');
-            const store = transaction.objectStore('logs');
-
-            const today = new Date().toISOString().split('T')[0];
-            const logData = {
-                type: itemType,
-                itemId: itemId,
-                date: today,
-                timestamp: Date.now()
-            };
-
-            await new Promise((resolve, reject) => {
-                const request = store.add(logData);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
-
-            console.log('Item logged from notification:', logData);
-
-            // Notify any open clients to refresh
-            const clients = await self.clients.matchAll({ type: 'window' });
-            clients.forEach(client => {
-                client.postMessage({
-                    type: 'REFRESH_DASHBOARD'
-                });
-            });
-
-            // Show confirmation notification
-            await self.registration.showNotification('Logged!', {
-                body: 'Meal logged successfully',
-                icon: '/icon-192.png',
-                tag: 'log-confirmation',
-                requireInteraction: false
-            });
-
-            // Close confirmation after 2 seconds
-            setTimeout(async () => {
-                const notifications = await self.registration.getNotifications({ tag: 'log-confirmation' });
-                notifications.forEach(n => n.close());
-            }, 2000);
-
-        } catch (error) {
-            console.error('Error logging item from notification:', error);
-        }
-    } else {
-        // Open app on notification click
         event.waitUntil(
-            clients.openWindow('/')
+            (async () => {
+                try {
+                    const db = await openDatabase();
+                    const transaction = db.transaction(['logs'], 'readwrite');
+                    const store = transaction.objectStore('logs');
+
+                    const today = new Date().toISOString().split('T')[0];
+                    const logData = {
+                        type: data.itemType,
+                        itemId: data.itemId,
+                        quantity: 1, // Default quantity when logging from notification
+                        date: today,
+                        timestamp: Date.now()
+                    };
+
+                    await new Promise((resolve, reject) => {
+                        const request = store.add(logData);
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+
+                    console.log('Item logged from notification:', logData);
+
+                    // Notify any open clients to refresh
+                    const clients = await self.clients.matchAll({ type: 'window' });
+                    clients.forEach(client => {
+                        client.postMessage({
+                            type: 'REFRESH_DASHBOARD'
+                        });
+                    });
+
+                    // Show confirmation notification with item name
+                    const itemName = data.itemName || (data.itemType === 'food' ? 'Food' : 'Meal');
+                    await self.registration.showNotification('✅ Logged!', {
+                        body: `${itemName} logged successfully`,
+                        icon: '/icon-192.png',
+                        badge: '/icon-192.png',
+                        tag: 'log-confirmation',
+                        requireInteraction: false
+                    });
+
+                    // Close confirmation after 2 seconds
+                    setTimeout(async () => {
+                        const notifications = await self.registration.getNotifications({ tag: 'log-confirmation' });
+                        notifications.forEach(n => n.close());
+                    }, 2000);
+
+                } catch (error) {
+                    console.error('Error logging item from notification:', error);
+                    // Show error notification
+                    await self.registration.showNotification('Error', {
+                        body: 'Failed to log item. Please try again.',
+                        icon: '/icon-192.png',
+                        tag: 'log-error',
+                        requireInteraction: false
+                    });
+                }
+            })()
+        );
+    } else {
+        // Generic notification click - just open the app
+        event.waitUntil(
+            self.clients.matchAll({ type: 'window' }).then(clients => {
+                // Check if app is already open
+                if (clients.length > 0) {
+                    // Focus the first client
+                    return clients[0].focus();
+                }
+                // Open new window if app not open
+                return self.clients.openWindow('/');
+            })
         );
     }
 });
