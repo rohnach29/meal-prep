@@ -104,13 +104,48 @@
                 <h3>Notifications</h3>
                 <button id="enable-notifications-btn" class="btn btn-secondary">Enable Notifications</button>
                 <p class="notification-status">Status: <span id="notification-status">Not enabled</span></p>
-                <div class="notification-times">
-                    <p>Scheduled notification times:</p>
-                    <ul>
-                        <li>11:00 AM</li>
-                        <li>3:00 PM</li>
-                        <li>8:00 PM</li>
+
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label>
+                        <input type="checkbox" id="test-mode-checkbox" style="width: auto; margin-right: 0.5rem;">
+                        <strong>Test Mode</strong> - Send notification every minute (for testing)
+                    </label>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                        ⚠️ Enable this to test notifications every minute. Disable for normal schedule.
+                    </p>
+                </div>
+
+                <div id="notification-times-section">
+                    <h4 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1rem;">Notification Times (EST)</h4>
+                    <div class="notification-times-editor">
+                        <div class="form-group">
+                            <label>Time 1</label>
+                            <input type="time" id="notif-time-1" class="notif-time-input" value="11:00">
+                        </div>
+                        <div class="form-group">
+                            <label>Time 2</label>
+                            <input type="time" id="notif-time-2" class="notif-time-input" value="15:00">
+                        </div>
+                        <div class="form-group">
+                            <label>Time 3</label>
+                            <input type="time" id="notif-time-3" class="notif-time-input" value="20:00">
+                        </div>
+                    </div>
+                    <button id="save-notification-times-btn" class="btn btn-primary" style="margin-top: 1rem;">Save Notification Times</button>
+                </div>
+
+                <div class="notification-times" style="margin-top: 1.5rem;">
+                    <p>Current schedule:</p>
+                    <ul id="current-notification-times">
+                        <li>11:00 AM EST</li>
+                        <li>3:00 PM EST</li>
+                        <li>8:00 PM EST</li>
                     </ul>
+                </div>
+
+                <div style="margin-top: 1rem; padding: 1rem; background: var(--primary-light); border-radius: var(--radius); border: 1px solid var(--primary-color);">
+                    <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong>Timezone:</strong> All times are in Eastern Standard Time (EST)</p>
+                    <p style="font-size: 0.813rem; color: var(--text-secondary); margin: 0;">Your system time: <span id="system-time"></span></p>
                 </div>
             </div>
 

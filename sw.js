@@ -89,31 +89,78 @@ async function getItemDetails(type, id) {
 // Scheduled notifications
 let notificationSchedule = {};
 
+async function getNotificationSettings() {
+    const db = await openDatabase();
+    const transaction = db.transaction(['settings'], 'readonly');
+    const store = transaction.objectStore('settings');
+
+    return new Promise((resolve, reject) => {
+        const request = store.get('notifications');
+        request.onsuccess = () => {
+            const settings = request.result || {
+                enabled: false,
+                times: ['11:00', '15:00', '20:00'],
+                testMode: false
+            };
+            resolve(settings);
+        };
+        request.onerror = () => reject(request.error);
+    });
+}
+
 async function scheduleNextNotifications() {
-    const times = ['11:00', '15:00', '20:00']; // 11am, 3pm, 8pm
-    const now = new Date();
+    // Clear existing schedules
+    Object.values(notificationSchedule).forEach(timeoutId => clearTimeout(timeoutId));
+    notificationSchedule = {};
 
-    for (const timeStr of times) {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        const scheduledTime = new Date();
-        scheduledTime.setHours(hours, minutes, 0, 0);
+    const settings = await getNotificationSettings();
 
-        // If time has passed today, schedule for tomorrow
-        if (scheduledTime <= now) {
-            scheduledTime.setDate(scheduledTime.getDate() + 1);
-        }
-
-        const timeUntil = scheduledTime - now;
-        const timeoutId = setTimeout(() => {
-            showMealNotification();
-            // Reschedule for next day
-            scheduleNextNotifications();
-        }, timeUntil);
-
-        notificationSchedule[timeStr] = timeoutId;
+    if (!settings.enabled) {
+        console.log('Notifications disabled');
+        return;
     }
 
-    console.log('Notifications scheduled for:', times);
+    const times = settings.times || ['11:00', '15:00', '20:00'];
+    const testMode = settings.testMode || false;
+    const now = new Date();
+
+    console.log('Scheduling notifications - Test mode:', testMode, 'Times:', times);
+
+    if (testMode) {
+        // Test mode: Fire every minute
+        console.log('TEST MODE: Notifications will fire every minute');
+        const scheduleTestNotification = () => {
+            showMealNotification();
+            notificationSchedule.testMode = setTimeout(scheduleTestNotification, 60000); // Every 60 seconds
+        };
+        // Fire first one after 5 seconds
+        notificationSchedule.testMode = setTimeout(scheduleTestNotification, 5000);
+    } else {
+        // Normal mode: Schedule for specific times
+        for (const timeStr of times) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            const scheduledTime = new Date();
+            scheduledTime.setHours(hours, minutes, 0, 0);
+
+            // If time has passed today, schedule for tomorrow
+            if (scheduledTime <= now) {
+                scheduledTime.setDate(scheduledTime.getDate() + 1);
+            }
+
+            const timeUntil = scheduledTime - now;
+            const timeoutId = setTimeout(() => {
+                showMealNotification();
+                // Reschedule for next occurrence
+                scheduleNextNotifications();
+            }, timeUntil);
+
+            notificationSchedule[timeStr] = timeoutId;
+
+            // Log when it will fire
+            const willFireAt = new Date(now.getTime() + timeUntil);
+            console.log(`Notification scheduled for ${timeStr} - will fire at ${willFireAt.toLocaleString('en-US', { timeZone: 'America/New_York' })} EST`);
+        }
+    }
 }
 
 async function showMealNotification() {

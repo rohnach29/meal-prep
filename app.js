@@ -71,6 +71,8 @@ class MealPrepApp {
         // Settings
         document.getElementById('save-goals-btn').addEventListener('click', () => this.saveGoals());
         document.getElementById('enable-notifications-btn').addEventListener('click', () => this.enableNotifications());
+        document.getElementById('save-notification-times-btn').addEventListener('click', () => this.saveNotificationTimes());
+        document.getElementById('test-mode-checkbox').addEventListener('change', (e) => this.toggleTestMode(e.target.checked));
         document.getElementById('export-data-btn').addEventListener('click', () => this.exportData());
         document.getElementById('clear-data-btn').addEventListener('click', () => this.clearData());
 
@@ -473,6 +475,50 @@ class MealPrepApp {
         document.getElementById('protein-goal').value = goals.proteinGoal;
         document.getElementById('carbs-goal').value = goals.carbsGoal;
         document.getElementById('fat-goal').value = goals.fatGoal;
+
+        // Load notification settings
+        const notifSettings = await db.getSetting('notifications');
+        if (notifSettings) {
+            const times = notifSettings.times || ['11:00', '15:00', '20:00'];
+            document.getElementById('notif-time-1').value = times[0] || '11:00';
+            document.getElementById('notif-time-2').value = times[1] || '15:00';
+            document.getElementById('notif-time-3').value = times[2] || '20:00';
+            document.getElementById('test-mode-checkbox').checked = notifSettings.testMode || false;
+
+            this.updateCurrentNotificationTimesList(times);
+        }
+
+        // Update system time display
+        this.updateSystemTime();
+        setInterval(() => this.updateSystemTime(), 1000);
+    }
+
+    updateSystemTime() {
+        const now = new Date();
+        const estTime = now.toLocaleString('en-US', {
+            timeZone: 'America/New_York',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        });
+        const systemTimeEl = document.getElementById('system-time');
+        if (systemTimeEl) {
+            systemTimeEl.textContent = estTime + ' EST';
+        }
+    }
+
+    updateCurrentNotificationTimesList(times) {
+        const listEl = document.getElementById('current-notification-times');
+        listEl.innerHTML = '';
+        times.forEach(time => {
+            const [hours, minutes] = time.split(':');
+            const hour12 = parseInt(hours) % 12 || 12;
+            const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM';
+            const li = document.createElement('li');
+            li.textContent = `${hour12}:${minutes} ${ampm} EST`;
+            listEl.appendChild(li);
+        });
     }
 
     async saveGoals() {
@@ -502,12 +548,54 @@ class MealPrepApp {
         const permission = await Notification.requestPermission();
 
         if (permission === 'granted') {
-            await db.updateSetting('notifications', { enabled: true, times: ['11:00', '15:00', '20:00'] });
+            // Get existing settings or use defaults
+            const existingSettings = await db.getSetting('notifications') || {};
+            const times = existingSettings.times || ['11:00', '15:00', '20:00'];
+            const testMode = existingSettings.testMode || false;
+
+            await db.updateSetting('notifications', {
+                enabled: true,
+                times: times,
+                testMode: testMode
+            });
             await this.updateNotificationStatus();
             await this.scheduleNotifications();
             this.showToast('Notifications enabled!');
         } else {
             alert('Notification permission denied');
+        }
+    }
+
+    async saveNotificationTimes() {
+        const time1 = document.getElementById('notif-time-1').value;
+        const time2 = document.getElementById('notif-time-2').value;
+        const time3 = document.getElementById('notif-time-3').value;
+        const times = [time1, time2, time3];
+
+        const existingSettings = await db.getSetting('notifications') || {};
+        await db.updateSetting('notifications', {
+            ...existingSettings,
+            times: times
+        });
+
+        this.updateCurrentNotificationTimesList(times);
+        await this.scheduleNotifications();
+        this.showToast('Notification times saved!');
+    }
+
+    async toggleTestMode(enabled) {
+        const existingSettings = await db.getSetting('notifications') || {};
+        await db.updateSetting('notifications', {
+            ...existingSettings,
+            testMode: enabled
+        });
+
+        await this.scheduleNotifications();
+
+        if (enabled) {
+            this.showToast('Test mode enabled! Notifications every minute.');
+        } else {
+            this.showToast('Test mode disabled. Using normal schedule.');
         }
     }
 
@@ -525,12 +613,12 @@ class MealPrepApp {
     }
 
     async scheduleNotifications() {
-        // Send notification times to service worker
+        // Trigger service worker to re-read settings and reschedule
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage({
-                type: 'SCHEDULE_NOTIFICATIONS',
-                times: ['11:00', '15:00', '20:00']
+                type: 'SCHEDULE_NOTIFICATIONS'
             });
+            console.log('Sent SCHEDULE_NOTIFICATIONS message to service worker');
         }
     }
 
