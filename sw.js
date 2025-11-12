@@ -50,20 +50,44 @@ function openDatabase() {
     });
 }
 
+// Utility: Get time of day category based on hour
+// Morning: 5am-1pm, Afternoon: 1pm-5pm, Night: 5pm-5am
+function getTimeOfDay(hour = null) {
+    if (hour === null) {
+        hour = new Date().getHours();
+    }
+
+    if (hour >= 5 && hour < 13) {
+        return 'morning';
+    } else if (hour >= 13 && hour < 17) {
+        return 'afternoon';
+    } else {
+        return 'night';
+    }
+}
+
 async function getRecentItems() {
     const db = await openDatabase();
     const transaction = db.transaction(['logs'], 'readonly');
     const store = transaction.objectStore('logs');
-    const index = store.index('timestamp');
+    const index = store.index('timeOfDay');
+    const today = new Date().toISOString().split('T')[0];
+    const currentTimeOfDay = getTimeOfDay();
+
+    console.log(`Getting recent items for ${currentTimeOfDay} (excluding today: ${today})`);
 
     return new Promise((resolve, reject) => {
-        const request = index.openCursor(null, 'prev');
+        const request = index.openCursor(IDBKeyRange.only(currentTimeOfDay), 'prev');
         const results = [];
 
         request.onsuccess = (event) => {
             const cursor = event.target.result;
             if (cursor && results.length < 5) {
-                results.push(cursor.value);
+                const log = cursor.value;
+                // Skip today's logs - only show from previous days in this time period
+                if (log.date !== today) {
+                    results.push(log);
+                }
                 cursor.continue();
             } else {
                 resolve(results);
@@ -184,11 +208,16 @@ async function showMealNotification() {
         for (const log of recentLogs.slice(0, 5)) {
             const item = await getItemDetails(log.type, log.itemId);
             if (item) {
+                const quantity = log.quantity || 1;
+                const baseCalories = log.type === 'food' ? item.calories : item.totalCalories;
+                const totalCalories = Math.round(baseCalories * quantity);
+
                 recentItems.push({
                     id: item.id,
                     name: item.name,
                     type: log.type,
-                    calories: log.type === 'food' ? item.calories : item.totalCalories,
+                    calories: totalCalories,
+                    quantity: quantity,
                     serving: log.type === 'food' ? (item.serving || '') : `${item.foods?.length || 0} foods`
                 });
             }
@@ -201,8 +230,9 @@ async function showMealNotification() {
         for (let i = 0; i < recentItems.length; i++) {
             const item = recentItems[i];
             const emoji = item.type === 'food' ? '🍽️' : '🥗';
+            const quantityText = item.quantity !== 1 ? ` × ${item.quantity}` : '';
 
-            await self.registration.showNotification(`${emoji} ${item.name}`, {
+            await self.registration.showNotification(`${emoji} ${item.name}${quantityText}`, {
                 body: `${item.calories} cal${item.serving ? ` • ${item.serving}` : ''}\n\nTap to log this ${item.type}!`,
                 icon: '/icon-192.png',
                 badge: '/icon-192.png',
@@ -212,7 +242,8 @@ async function showMealNotification() {
                     // Store the item info so we can log it on click
                     itemType: item.type,
                     itemId: item.id,
-                    itemName: item.name
+                    itemName: item.name,
+                    quantity: item.quantity
                 }
             });
         }
@@ -240,12 +271,16 @@ self.addEventListener('notificationclick', async (event) => {
                     const store = transaction.objectStore('logs');
 
                     const today = new Date().toISOString().split('T')[0];
+                    const timeOfDay = getTimeOfDay();
+                    const quantity = data.quantity || 1; // Use quantity from notification, default to 1
+
                     const logData = {
                         type: data.itemType,
                         itemId: data.itemId,
-                        quantity: 1, // Default quantity when logging from notification
+                        quantity: quantity,
                         date: today,
-                        timestamp: Date.now()
+                        timestamp: Date.now(),
+                        timeOfDay: timeOfDay
                     };
 
                     await new Promise((resolve, reject) => {
@@ -264,10 +299,11 @@ self.addEventListener('notificationclick', async (event) => {
                         });
                     });
 
-                    // Show confirmation notification with item name
+                    // Show confirmation notification with item name and quantity
                     const itemName = data.itemName || (data.itemType === 'food' ? 'Food' : 'Meal');
+                    const quantityText = quantity !== 1 ? ` × ${quantity}` : '';
                     await self.registration.showNotification('✅ Logged!', {
-                        body: `${itemName} logged successfully`,
+                        body: `${itemName}${quantityText} logged successfully`,
                         icon: '/icon-192.png',
                         badge: '/icon-192.png',
                         tag: 'log-confirmation',

@@ -2,7 +2,7 @@
 class MealPrepDB {
     constructor() {
         this.dbName = 'MealPrepDB';
-        this.version = 1;
+        this.version = 2; // Updated to support timeOfDay field
         this.db = null;
     }
 
@@ -18,6 +18,8 @@ class MealPrepDB {
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
+                const oldVersion = event.oldVersion;
+                const transaction = event.target.transaction;
 
                 // Foods store
                 if (!db.objectStoreNames.contains('foods')) {
@@ -39,6 +41,13 @@ class MealPrepDB {
                     logStore.createIndex('date', 'date', { unique: false });
                     logStore.createIndex('timestamp', 'timestamp', { unique: false });
                     logStore.createIndex('type', 'type', { unique: false });
+                    logStore.createIndex('timeOfDay', 'timeOfDay', { unique: false });
+                } else if (oldVersion < 2) {
+                    // Upgrading from version 1 to 2: add timeOfDay index
+                    const logStore = transaction.objectStore('logs');
+                    if (!logStore.indexNames.contains('timeOfDay')) {
+                        logStore.createIndex('timeOfDay', 'timeOfDay', { unique: false });
+                    }
                 }
 
                 // Settings store
@@ -46,11 +55,12 @@ class MealPrepDB {
                     db.createObjectStore('settings', { keyPath: 'key' });
                 }
 
-                // Initialize default settings
-                const transaction = event.target.transaction;
-                const settingsStore = transaction.objectStore('settings');
-                settingsStore.put({ key: 'goals', calorieGoal: 2000, proteinGoal: 150, carbsGoal: 200, fatGoal: 65 });
-                settingsStore.put({ key: 'notifications', enabled: false, times: ['11:00', '15:00', '20:00'] });
+                // Initialize default settings (only on fresh install)
+                if (oldVersion === 0) {
+                    const settingsStore = transaction.objectStore('settings');
+                    settingsStore.put({ key: 'goals', calorieGoal: 2000, proteinGoal: 150, carbsGoal: 200, fatGoal: 65 });
+                    settingsStore.put({ key: 'notifications', enabled: false, times: ['11:00', '15:00', '20:00'] });
+                }
             };
         });
     }
@@ -181,15 +191,33 @@ class MealPrepDB {
         });
     }
 
+    // Utility: Get time of day category based on hour
+    // Morning: 5am-1pm, Afternoon: 1pm-5pm, Night: 5pm-5am
+    getTimeOfDay(hour = null) {
+        if (hour === null) {
+            hour = new Date().getHours();
+        }
+
+        if (hour >= 5 && hour < 13) {
+            return 'morning';
+        } else if (hour >= 13 && hour < 17) {
+            return 'afternoon';
+        } else {
+            return 'night';
+        }
+    }
+
     // Logs CRUD
     async addLog(log) {
         const transaction = this.db.transaction(['logs'], 'readwrite');
         const store = transaction.objectStore('logs');
         const today = new Date().toISOString().split('T')[0];
+        const timeOfDay = this.getTimeOfDay();
         const logData = {
             ...log,
             date: today,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            timeOfDay: timeOfDay
         };
         return new Promise((resolve, reject) => {
             const request = store.add(logData);
@@ -224,6 +252,34 @@ class MealPrepDB {
                 const cursor = event.target.result;
                 if (cursor && results.length < limit) {
                     results.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    resolve(results);
+                }
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // Get recent logs filtered by time of day, excluding today
+    async getRecentLogsByTimeOfDay(timeOfDay, limit = 5) {
+        const transaction = this.db.transaction(['logs'], 'readonly');
+        const store = transaction.objectStore('logs');
+        const index = store.index('timeOfDay');
+        const today = new Date().toISOString().split('T')[0];
+
+        return new Promise((resolve, reject) => {
+            const request = index.openCursor(IDBKeyRange.only(timeOfDay), 'prev');
+            const results = [];
+
+            request.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor && results.length < limit) {
+                    const log = cursor.value;
+                    // Skip today's logs - we only want previous days
+                    if (log.date !== today) {
+                        results.push(log);
+                    }
                     cursor.continue();
                 } else {
                     resolve(results);
