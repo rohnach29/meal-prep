@@ -1,0 +1,5 @@
+This is a placeholder for icon-512.png
+To generate proper icons:
+1. Open generate-icons.html in a browser
+2. Or use an online tool to convert the emoji 🥗 on a #4CAF50 background
+3. Save as icon-192.png and icon-512.png

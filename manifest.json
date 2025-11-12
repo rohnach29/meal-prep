@@ -1,0 +1,13 @@
+{
+  "name": "MealPrep - Smart Nutrition Tracker",
+  "short_name": "MealPrep",
+  "description": "Track your meals, calories, and nutrition with smart notifications",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4CAF50",
+  "orientation": "portrait",
+  "icons": [],
+  "categories": ["health", "lifestyle", "food"],
+  "screenshots": []
+}
