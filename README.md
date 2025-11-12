@@ -2,6 +2,8 @@
 
 A Progressive Web App (PWA) for tracking meals, calories, and nutrition with intelligent scheduled notifications.
 
+> **⚠️ Important for iOS Users:** The main notification feature (action buttons) has **limited support on iPhone**. For the full experience, use **macOS with Chrome/Edge** or **Android**. [Read full iOS limitations →](IOS-LIMITATIONS.md)
+
 ## Features
 
 ### Core Functionality
@@ -145,25 +147,29 @@ Clear all data to start fresh:
 
 ## Browser Compatibility
 
-### Requirements
-- Modern browser with:
-  - Service Worker support
-  - Notification API support
-  - IndexedDB support
-  - PWA install capability
+### ✅ Full Support (Recommended)
+**All features including notification actions:**
+- **macOS**: Chrome, Edge, Brave
+- **Windows**: Chrome, Edge
+- **Android**: Chrome, Edge, Samsung Internet
+- **Linux**: Chrome, Edge, Firefox
 
-### Recommended Browsers
-- **Chrome/Edge**: Full support ✅
-- **Firefox**: Full support ✅
-- **Safari (iOS 16.4+)**: Full support ✅
-- **Samsung Internet**: Full support ✅
+### ⚠️ Limited Support
+**Basic features only, NO notification actions:**
+- **iOS 16.4+**: Safari only (all iOS browsers use Safari's engine)
+- **macOS Safari**: Limited PWA support
 
-### Notification Support
-Notification actions (the key feature) work on:
-- Android (Chrome, Edge, Samsung Internet)
-- Windows (Chrome, Edge)
-- macOS (Chrome, Edge, Safari with limitations)
-- iOS 16.4+ (limited action support)
+### 📱 Platform Recommendations
+
+| Platform | Browser | Notification Actions | Recommendation |
+|----------|---------|---------------------|----------------|
+| macOS | Chrome/Edge | ✅ Yes | **Best for full experience** |
+| macOS | Safari | ❌ No | Not recommended |
+| iPhone/iOS | Safari | ❌ No | Limited - see [iOS Limitations](IOS-LIMITATIONS.md) |
+| Android | Chrome/Edge | ✅ Yes | **Full support** |
+| Windows | Chrome/Edge | ✅ Yes | **Full support** |
+
+**For iPhone Users:** The notification action buttons (main feature) don't work on iOS. Please read [IOS-LIMITATIONS.md](IOS-LIMITATIONS.md) for detailed explanation and recommended setup.
 
 ## Technical Details
 
@@ -218,6 +224,19 @@ meal-prep/
 1. Close all tabs with the app
 2. Clear service worker in DevTools
 3. Hard refresh (Ctrl+Shift+R or Cmd+Shift+R)
+
+## iOS and iPhone Users - READ THIS
+
+**The main notification feature (action buttons for quick logging) does NOT work on iPhone/iOS.**
+
+This is due to Apple's PWA limitations, not the app itself. On iOS you'll get notifications, but you'll need to open the app to log meals - defeating the quick-logging purpose.
+
+### Recommended Setup:
+1. **Use on macOS (Mac computer)** with Chrome or Edge - Get full notification action support
+2. **Use on Android** - Get full notification action support
+3. **Use on iPhone** - Only if you accept limited functionality
+
+For detailed explanation of iOS limitations and recommended setup, see [IOS-LIMITATIONS.md](IOS-LIMITATIONS.md)
 
 ## Privacy
 

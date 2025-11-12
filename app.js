@@ -237,7 +237,7 @@ class MealPrepApp {
                         }
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="app.logItem('${item.type}', ${item.id})">Add</button>
+                <button type="button" class="btn btn-primary" onclick="app.logItem('${item.type}', ${item.id})">Add</button>
             `;
             resultsContainer.appendChild(div);
         });
@@ -387,7 +387,7 @@ class MealPrepApp {
                     <h4>${food.name}</h4>
                     <div class="result-details">${food.calories} cal • ${food.serving || ''}</div>
                 </div>
-                <button class="btn btn-primary" onclick="app.addFoodToMeal(${food.id}, '${food.name.replace(/'/g, "\\'")}')">Add</button>
+                <button type="button" class="btn btn-primary" onclick="app.addFoodToMeal(${food.id}, '${food.name.replace(/'/g, "\\'")}')">Add</button>
             `;
             resultsContainer.appendChild(div);
         });
