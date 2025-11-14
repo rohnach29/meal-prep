@@ -447,67 +447,115 @@ class MealPrepDB {
 
     // Add sample logs for testing time-based notifications
     async addSampleLogsIfNeeded() {
-        // Check if we have any logs from previous days
-        const allLogs = await this.getAllLogs();
-        const today = new Date().toISOString().split('T')[0];
-        const previousLogs = allLogs.filter(log => log.date !== today);
+        try {
+            console.log('🔍 Checking if sample logs needed...');
 
-        // If we have previous logs, don't add samples
-        if (previousLogs.length > 0) {
-            console.log('Previous logs exist, skipping sample data');
-            return;
+            // Check if we have any logs from previous days
+            const allLogs = await this.getAllLogs();
+            console.log(`Total logs in database: ${allLogs.length}`);
+
+            const today = new Date().toISOString().split('T')[0];
+            console.log(`Today's date: ${today}`);
+
+            const previousLogs = allLogs.filter(log => log.date !== today);
+            console.log(`Previous day logs found: ${previousLogs.length}`);
+
+            // If we have previous logs, don't add samples
+            if (previousLogs.length > 0) {
+                console.log('✅ Previous logs exist, skipping sample data');
+                return;
+            }
+
+            console.log('⚠️ No previous logs found, adding sample data for testing notifications');
+
+            // Get all foods
+            const foods = await this.getAllFoods();
+            console.log(`Total foods in database: ${foods.length}`);
+
+            if (foods.length < 15) {
+                console.error(`❌ Not enough foods to create sample logs (need 15, have ${foods.length})`);
+                return;
+            }
+
+            await this.forcedAddSampleLogs();
+
+        } catch (error) {
+            console.error('❌ Error in addSampleLogsIfNeeded:', error);
         }
+    }
 
-        console.log('No previous logs found, adding sample data for testing notifications');
+    // Force add sample logs (can be called manually)
+    async forcedAddSampleLogs() {
+        try {
+            console.log('💉 FORCE ADDING SAMPLE LOGS...');
 
-        // Get all foods
-        const foods = await this.getAllFoods();
-        if (foods.length < 15) {
-            console.log('Not enough foods to create sample logs');
-            return;
+            // Add sample logs from yesterday for each time period
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            console.log(`Yesterday's date: ${yesterdayStr}`);
+
+            const sampleLogs = [
+                // Morning logs (first 5 foods) - logged yesterday morning
+                { type: 'food', itemId: 1, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(8, 0, 0, 0), timeOfDay: 'morning' },
+                { type: 'food', itemId: 2, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(8, 30, 0, 0), timeOfDay: 'morning' },
+                { type: 'food', itemId: 3, quantity: 0.5, date: yesterdayStr, timestamp: new Date(yesterday).setHours(9, 0, 0, 0), timeOfDay: 'morning' },
+                { type: 'food', itemId: 4, quantity: 2, date: yesterdayStr, timestamp: new Date(yesterday).setHours(10, 0, 0, 0), timeOfDay: 'morning' },
+                { type: 'food', itemId: 5, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(11, 0, 0, 0), timeOfDay: 'morning' },
+
+                // Afternoon logs (foods 6-10) - logged yesterday afternoon
+                { type: 'food', itemId: 6, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(13, 0, 0, 0), timeOfDay: 'afternoon' },
+                { type: 'food', itemId: 7, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(14, 0, 0, 0), timeOfDay: 'afternoon' },
+                { type: 'food', itemId: 8, quantity: 1.5, date: yesterdayStr, timestamp: new Date(yesterday).setHours(15, 0, 0, 0), timeOfDay: 'afternoon' },
+                { type: 'food', itemId: 9, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(16, 0, 0, 0), timeOfDay: 'afternoon' },
+                { type: 'food', itemId: 10, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(16, 30, 0, 0), timeOfDay: 'afternoon' },
+
+                // Night logs (foods 11-15) - logged yesterday night
+                { type: 'food', itemId: 11, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(18, 0, 0, 0), timeOfDay: 'night' },
+                { type: 'food', itemId: 12, quantity: 1.5, date: yesterdayStr, timestamp: new Date(yesterday).setHours(18, 30, 0, 0), timeOfDay: 'night' },
+                { type: 'food', itemId: 13, quantity: 2, date: yesterdayStr, timestamp: new Date(yesterday).setHours(19, 0, 0, 0), timeOfDay: 'night' },
+                { type: 'food', itemId: 14, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(20, 0, 0, 0), timeOfDay: 'night' },
+                { type: 'food', itemId: 15, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(21, 0, 0, 0), timeOfDay: 'night' }
+            ];
+
+            console.log(`Prepared ${sampleLogs.length} sample logs`);
+
+            // Add logs directly to database
+            const transaction = this.db.transaction(['logs'], 'readwrite');
+            const store = transaction.objectStore('logs');
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const log of sampleLogs) {
+                try {
+                    await new Promise((resolve, reject) => {
+                        const request = store.add(log);
+                        request.onsuccess = () => {
+                            successCount++;
+                            console.log(`  ✅ Added log ${successCount}: ${log.timeOfDay} - food ${log.itemId} × ${log.quantity}`);
+                            resolve();
+                        };
+                        request.onerror = () => {
+                            errorCount++;
+                            console.error(`  ❌ Failed to add log: food ${log.itemId}`, request.error);
+                            reject(request.error);
+                        };
+                    });
+                } catch (error) {
+                    console.error(`  ❌ Error adding log:`, error);
+                    errorCount++;
+                }
+            }
+
+            console.log(`✅ Sample logs added! Success: ${successCount}, Errors: ${errorCount}`);
+            return { success: successCount, errors: errorCount };
+
+        } catch (error) {
+            console.error('❌ CRITICAL ERROR in forcedAddSampleLogs:', error);
+            throw error;
         }
-
-        // Add sample logs from yesterday for each time period
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-        const sampleLogs = [
-            // Morning logs (first 5 foods) - logged yesterday morning
-            { type: 'food', itemId: 1, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(8, 0, 0, 0), timeOfDay: 'morning' },
-            { type: 'food', itemId: 2, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(8, 30, 0, 0), timeOfDay: 'morning' },
-            { type: 'food', itemId: 3, quantity: 0.5, date: yesterdayStr, timestamp: new Date(yesterday).setHours(9, 0, 0, 0), timeOfDay: 'morning' },
-            { type: 'food', itemId: 4, quantity: 2, date: yesterdayStr, timestamp: new Date(yesterday).setHours(10, 0, 0, 0), timeOfDay: 'morning' },
-            { type: 'food', itemId: 5, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(11, 0, 0, 0), timeOfDay: 'morning' },
-
-            // Afternoon logs (foods 6-10) - logged yesterday afternoon
-            { type: 'food', itemId: 6, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(13, 0, 0, 0), timeOfDay: 'afternoon' },
-            { type: 'food', itemId: 7, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(14, 0, 0, 0), timeOfDay: 'afternoon' },
-            { type: 'food', itemId: 8, quantity: 1.5, date: yesterdayStr, timestamp: new Date(yesterday).setHours(15, 0, 0, 0), timeOfDay: 'afternoon' },
-            { type: 'food', itemId: 9, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(16, 0, 0, 0), timeOfDay: 'afternoon' },
-            { type: 'food', itemId: 10, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(16, 30, 0, 0), timeOfDay: 'afternoon' },
-
-            // Night logs (foods 11-15) - logged yesterday night
-            { type: 'food', itemId: 11, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(18, 0, 0, 0), timeOfDay: 'night' },
-            { type: 'food', itemId: 12, quantity: 1.5, date: yesterdayStr, timestamp: new Date(yesterday).setHours(18, 30, 0, 0), timeOfDay: 'night' },
-            { type: 'food', itemId: 13, quantity: 2, date: yesterdayStr, timestamp: new Date(yesterday).setHours(19, 0, 0, 0), timeOfDay: 'night' },
-            { type: 'food', itemId: 14, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(20, 0, 0, 0), timeOfDay: 'night' },
-            { type: 'food', itemId: 15, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(21, 0, 0, 0), timeOfDay: 'night' }
-        ];
-
-        // Add logs directly to database
-        const transaction = this.db.transaction(['logs'], 'readwrite');
-        const store = transaction.objectStore('logs');
-
-        for (const log of sampleLogs) {
-            await new Promise((resolve, reject) => {
-                const request = store.add(log);
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        console.log('Added 15 sample logs from yesterday for testing');
     }
 }
 

@@ -75,6 +75,7 @@ class MealPrepApp {
         document.getElementById('save-notification-times-btn').addEventListener('click', () => this.saveNotificationTimes());
         document.getElementById('test-mode-checkbox').addEventListener('change', (e) => this.toggleTestMode(e.target.checked));
         document.getElementById('test-notification-now').addEventListener('click', () => this.testNotificationNow());
+        document.getElementById('force-add-sample-logs').addEventListener('click', () => this.forceAddSampleLogs());
         document.getElementById('export-data-btn').addEventListener('click', () => this.exportData());
         document.getElementById('clear-data-btn').addEventListener('click', () => this.clearData());
 
@@ -730,6 +731,30 @@ class MealPrepApp {
         } else {
             this.showToast('Service worker not ready. Please refresh the page.');
             console.error('Service worker controller not available');
+        }
+    }
+
+    async forceAddSampleLogs() {
+        console.log('💉 FORCE ADD SAMPLE LOGS BUTTON CLICKED');
+
+        if (!confirm('This will add 15 sample logs from yesterday. Continue?')) {
+            return;
+        }
+
+        try {
+            this.showToast('Adding sample logs...');
+            const result = await db.forcedAddSampleLogs();
+
+            if (result.success > 0) {
+                this.showToast(`✅ Added ${result.success} sample logs! Check console for details.`);
+                await this.updateDebugInfo(); // Refresh the debug panel
+                console.log('Sample logs added successfully. Try the test notification button now!');
+            } else {
+                this.showToast('❌ Failed to add sample logs. Check console.');
+            }
+        } catch (error) {
+            console.error('❌ CRITICAL ERROR adding sample logs:', error);
+            this.showToast('❌ Error adding sample logs. Check console.');
         }
     }
 
