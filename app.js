@@ -74,6 +74,7 @@ class MealPrepApp {
         document.getElementById('enable-notifications-btn').addEventListener('click', () => this.enableNotifications());
         document.getElementById('save-notification-times-btn').addEventListener('click', () => this.saveNotificationTimes());
         document.getElementById('test-mode-checkbox').addEventListener('change', (e) => this.toggleTestMode(e.target.checked));
+        document.getElementById('test-notification-now').addEventListener('click', () => this.testNotificationNow());
         document.getElementById('export-data-btn').addEventListener('click', () => this.exportData());
         document.getElementById('clear-data-btn').addEventListener('click', () => this.clearData());
 
@@ -712,6 +713,26 @@ class MealPrepApp {
         }
     }
 
+    async testNotificationNow() {
+        console.log('🔔 Manual test notification triggered');
+
+        if (Notification.permission !== 'granted') {
+            this.showToast('Please enable notifications first!');
+            return;
+        }
+
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: 'TEST_NOTIFICATION_NOW'
+            });
+            console.log('Sent TEST_NOTIFICATION_NOW to service worker');
+            this.showToast('Sending test notifications...');
+        } else {
+            this.showToast('Service worker not ready. Please refresh the page.');
+            console.error('Service worker controller not available');
+        }
+    }
+
     async updateNotificationStatus() {
         const settings = await db.getSetting('notifications');
         const statusEl = document.getElementById('notification-status');
@@ -722,6 +743,67 @@ class MealPrepApp {
         } else {
             statusEl.textContent = 'Not enabled';
             statusEl.style.color = 'var(--text-secondary)';
+        }
+
+        // Update debug info
+        this.updateDebugInfo();
+    }
+
+    async updateDebugInfo() {
+        // Service Worker status
+        const swStatusEl = document.getElementById('sw-status');
+        if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) {
+                if (registration.active) {
+                    swStatusEl.textContent = '✅ Active';
+                    swStatusEl.style.color = 'var(--primary-color)';
+                } else {
+                    swStatusEl.textContent = '⏳ Installing...';
+                    swStatusEl.style.color = 'orange';
+                }
+            } else {
+                swStatusEl.textContent = '❌ Not registered';
+                swStatusEl.style.color = 'red';
+            }
+        } else {
+            swStatusEl.textContent = '❌ Not supported';
+            swStatusEl.style.color = 'red';
+        }
+
+        // Notification permission
+        const notifPermEl = document.getElementById('notif-permission');
+        if ('Notification' in window) {
+            if (Notification.permission === 'granted') {
+                notifPermEl.textContent = '✅ Granted';
+                notifPermEl.style.color = 'var(--primary-color)';
+            } else if (Notification.permission === 'denied') {
+                notifPermEl.textContent = '❌ Denied';
+                notifPermEl.style.color = 'red';
+            } else {
+                notifPermEl.textContent = '⏳ Not requested';
+                notifPermEl.style.color = 'orange';
+            }
+        } else {
+            notifPermEl.textContent = '❌ Not supported';
+            notifPermEl.style.color = 'red';
+        }
+
+        // Previous day logs count
+        const logsCountEl = document.getElementById('prev-logs-count');
+        try {
+            const allLogs = await db.getAllLogs();
+            const today = new Date().toISOString().split('T')[0];
+            const previousLogs = allLogs.filter(log => log.date !== today);
+            logsCountEl.textContent = `${previousLogs.length} logs`;
+            if (previousLogs.length === 0) {
+                logsCountEl.style.color = 'red';
+            } else {
+                logsCountEl.style.color = 'var(--primary-color)';
+            }
+        } catch (error) {
+            logsCountEl.textContent = 'Error loading';
+            logsCountEl.style.color = 'red';
         }
     }
 
@@ -761,20 +843,49 @@ class MealPrepApp {
     async registerServiceWorker() {
         if ('serviceWorker' in navigator) {
             try {
-                const registration = await navigator.serviceWorker.register('/sw.js');
-                console.log('Service Worker registered:', registration);
+                // Force service worker to update
+                const registration = await navigator.serviceWorker.register('/sw.js', {
+                    updateViaCache: 'none'
+                });
+
+                console.log('✅ Service Worker registered:', registration);
+
+                // Check for updates immediately
+                registration.update();
+
+                // Handle service worker updates
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    console.log('🔄 New service worker found, installing...');
+
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log('✅ New service worker installed, will activate on next page load');
+                            this.showToast('App updated! Refresh for the latest version.');
+                        }
+                    });
+                });
 
                 // Listen for messages from service worker
                 navigator.serviceWorker.addEventListener('message', (event) => {
+                    console.log('Message from service worker:', event.data);
+
                     if (event.data.type === 'LOG_ITEM') {
                         this.logItem(event.data.itemType, event.data.itemId);
                     } else if (event.data.type === 'REFRESH_DASHBOARD') {
                         this.updateDashboard();
                     }
                 });
+
+                // Check if service worker is ready
+                await navigator.serviceWorker.ready;
+                console.log('✅ Service Worker ready');
+
             } catch (error) {
-                console.error('Service Worker registration failed:', error);
+                console.error('❌ Service Worker registration failed:', error);
             }
+        } else {
+            console.warn('⚠️ Service Workers not supported');
         }
     }
 

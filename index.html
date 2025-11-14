@@ -115,6 +115,15 @@
                     </p>
                 </div>
 
+                <div style="margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-radius: var(--radius); border: 1px solid #0ea5e9;">
+                    <p style="font-size: 0.875rem; margin: 0 0 0.5rem 0;"><strong>🔍 Debug Info</strong></p>
+                    <p style="font-size: 0.813rem; color: var(--text-secondary); margin: 0.25rem 0;">Last Updated: <span id="version-timestamp" style="font-weight: 600; color: #0ea5e9;">2025-11-14 11:15 AM EST</span></p>
+                    <p style="font-size: 0.813rem; color: var(--text-secondary); margin: 0.25rem 0;">Service Worker: <span id="sw-status" style="font-weight: 600;">Checking...</span></p>
+                    <p style="font-size: 0.813rem; color: var(--text-secondary); margin: 0.25rem 0;">Notification Permission: <span id="notif-permission" style="font-weight: 600;">Checking...</span></p>
+                    <p style="font-size: 0.813rem; color: var(--text-secondary); margin: 0.25rem 0;">Previous Day Logs: <span id="prev-logs-count" style="font-weight: 600;">Checking...</span></p>
+                    <button id="test-notification-now" class="btn btn-secondary" style="margin-top: 0.75rem; font-size: 0.875rem; width: 100%;">🔔 Test Notification Now</button>
+                </div>
+
                 <div id="notification-times-section">
                     <h4 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1rem;">Notification Times (EST)</h4>
                     <div class="notification-times-editor">

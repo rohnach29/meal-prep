@@ -1,5 +1,6 @@
 // Service Worker for MealPrep PWA
-const CACHE_NAME = 'mealprep-v2';
+// Updated: 2025-11-14 11:15 AM EST
+const CACHE_NAME = 'mealprep-v3';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -188,10 +189,14 @@ async function scheduleNextNotifications() {
 }
 
 async function showMealNotification() {
+    console.log('🔔 showMealNotification called');
+
     try {
         const recentLogs = await getRecentItems();
+        console.log(`Found ${recentLogs.length} recent logs for current time of day`);
 
         if (recentLogs.length === 0) {
+            console.warn('⚠️ No recent logs found - showing generic notification');
             // No recent items, show generic notification
             await self.registration.showNotification('MealPrep Reminder', {
                 body: 'Time to log your meal! Open the app to add foods.',
@@ -200,6 +205,7 @@ async function showMealNotification() {
                 tag: 'meal-reminder',
                 requireInteraction: false
             });
+            console.log('✅ Generic notification sent');
             return;
         }
 
@@ -225,12 +231,15 @@ async function showMealNotification() {
 
         // Send 5 separate notifications - one for each recent item
         // This works on BOTH macOS and iPhone!
-        console.log(`Sending ${recentItems.length} separate notifications for quick logging`);
+        console.log(`📤 Sending ${recentItems.length} separate notifications for quick logging`);
+        console.log('Recent items:', recentItems.map(i => `${i.name} × ${i.quantity}`).join(', '));
 
         for (let i = 0; i < recentItems.length; i++) {
             const item = recentItems[i];
             const emoji = item.type === 'food' ? '🍽️' : '🥗';
             const quantityText = item.quantity !== 1 ? ` × ${item.quantity}` : '';
+
+            console.log(`  ${i + 1}. Sending: ${emoji} ${item.name}${quantityText} (${item.calories} cal)`);
 
             await self.registration.showNotification(`${emoji} ${item.name}${quantityText}`, {
                 body: `${item.calories} cal${item.serving ? ` • ${item.serving}` : ''}\n\nTap to log this ${item.type}!`,
@@ -248,7 +257,7 @@ async function showMealNotification() {
             });
         }
 
-        console.log(`Successfully sent ${recentItems.length} meal notifications`);
+        console.log(`✅ Successfully sent ${recentItems.length} meal notifications`);
     } catch (error) {
         console.error('Error showing meal notifications:', error);
     }
@@ -346,9 +355,16 @@ self.addEventListener('notificationclick', async (event) => {
 
 // Listen for messages from the main app
 self.addEventListener('message', (event) => {
+    console.log('Service worker received message:', event.data.type);
+
     if (event.data.type === 'SCHEDULE_NOTIFICATIONS') {
+        console.log('Re-scheduling notifications...');
         scheduleNextNotifications();
     } else if (event.data.type === 'SHOW_TEST_NOTIFICATION') {
+        console.log('Showing test notification (legacy)...');
+        showMealNotification();
+    } else if (event.data.type === 'TEST_NOTIFICATION_NOW') {
+        console.log('🔔 Manual test notification triggered!');
         showMealNotification();
     }
 });
