@@ -9,6 +9,7 @@ class MealPrepApp {
     async init() {
         await db.init();
         await this.initializeCommonFoods();
+        await db.addSampleLogsIfNeeded(); // Add sample logs for testing notifications
         this.setupEventListeners();
         this.setupModals();
         this.registerServiceWorker();

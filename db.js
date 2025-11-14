@@ -444,6 +444,71 @@ class MealPrepDB {
 
         return Promise.all(promises);
     }
+
+    // Add sample logs for testing time-based notifications
+    async addSampleLogsIfNeeded() {
+        // Check if we have any logs from previous days
+        const allLogs = await this.getAllLogs();
+        const today = new Date().toISOString().split('T')[0];
+        const previousLogs = allLogs.filter(log => log.date !== today);
+
+        // If we have previous logs, don't add samples
+        if (previousLogs.length > 0) {
+            console.log('Previous logs exist, skipping sample data');
+            return;
+        }
+
+        console.log('No previous logs found, adding sample data for testing notifications');
+
+        // Get all foods
+        const foods = await this.getAllFoods();
+        if (foods.length < 15) {
+            console.log('Not enough foods to create sample logs');
+            return;
+        }
+
+        // Add sample logs from yesterday for each time period
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        const sampleLogs = [
+            // Morning logs (first 5 foods) - logged yesterday morning
+            { type: 'food', itemId: 1, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(8, 0, 0, 0), timeOfDay: 'morning' },
+            { type: 'food', itemId: 2, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(8, 30, 0, 0), timeOfDay: 'morning' },
+            { type: 'food', itemId: 3, quantity: 0.5, date: yesterdayStr, timestamp: new Date(yesterday).setHours(9, 0, 0, 0), timeOfDay: 'morning' },
+            { type: 'food', itemId: 4, quantity: 2, date: yesterdayStr, timestamp: new Date(yesterday).setHours(10, 0, 0, 0), timeOfDay: 'morning' },
+            { type: 'food', itemId: 5, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(11, 0, 0, 0), timeOfDay: 'morning' },
+
+            // Afternoon logs (foods 6-10) - logged yesterday afternoon
+            { type: 'food', itemId: 6, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(13, 0, 0, 0), timeOfDay: 'afternoon' },
+            { type: 'food', itemId: 7, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(14, 0, 0, 0), timeOfDay: 'afternoon' },
+            { type: 'food', itemId: 8, quantity: 1.5, date: yesterdayStr, timestamp: new Date(yesterday).setHours(15, 0, 0, 0), timeOfDay: 'afternoon' },
+            { type: 'food', itemId: 9, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(16, 0, 0, 0), timeOfDay: 'afternoon' },
+            { type: 'food', itemId: 10, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(16, 30, 0, 0), timeOfDay: 'afternoon' },
+
+            // Night logs (foods 11-15) - logged yesterday night
+            { type: 'food', itemId: 11, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(18, 0, 0, 0), timeOfDay: 'night' },
+            { type: 'food', itemId: 12, quantity: 1.5, date: yesterdayStr, timestamp: new Date(yesterday).setHours(18, 30, 0, 0), timeOfDay: 'night' },
+            { type: 'food', itemId: 13, quantity: 2, date: yesterdayStr, timestamp: new Date(yesterday).setHours(19, 0, 0, 0), timeOfDay: 'night' },
+            { type: 'food', itemId: 14, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(20, 0, 0, 0), timeOfDay: 'night' },
+            { type: 'food', itemId: 15, quantity: 1, date: yesterdayStr, timestamp: new Date(yesterday).setHours(21, 0, 0, 0), timeOfDay: 'night' }
+        ];
+
+        // Add logs directly to database
+        const transaction = this.db.transaction(['logs'], 'readwrite');
+        const store = transaction.objectStore('logs');
+
+        for (const log of sampleLogs) {
+            await new Promise((resolve, reject) => {
+                const request = store.add(log);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        console.log('Added 15 sample logs from yesterday for testing');
+    }
 }
 
 // Initialize database
