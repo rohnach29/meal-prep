@@ -1,5 +1,5 @@
 // Service Worker for MealPrep PWA
-const CACHE_NAME = 'mealprep-v1';
+const CACHE_NAME = 'mealprep-v2';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -44,7 +44,7 @@ self.addEventListener('fetch', (event) => {
 // IndexedDB helper functions for Service Worker
 function openDatabase() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open('MealPrepDB', 1);
+        const request = indexedDB.open('MealPrepDB', 2); // Updated to version 2
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
     });
