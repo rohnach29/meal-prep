@@ -16,6 +16,7 @@ class MealPrepApp {
         this.setupPWAInstall();
         await this.updateDashboard();
         await this.updateNotificationStatus();
+        await this.checkPushSubscription(); // Check push notification subscription status
     }
 
     // Common foods database (fallback if no API)
@@ -76,6 +77,7 @@ class MealPrepApp {
         document.getElementById('test-mode-checkbox').addEventListener('change', (e) => this.toggleTestMode(e.target.checked));
         document.getElementById('test-notification-now').addEventListener('click', () => this.testNotificationNow());
         document.getElementById('force-add-sample-logs').addEventListener('click', () => this.forceAddSampleLogs());
+        document.getElementById('subscribe-push-btn').addEventListener('click', () => this.subscribeToPush());
         document.getElementById('export-data-btn').addEventListener('click', () => this.exportData());
         document.getElementById('clear-data-btn').addEventListener('click', () => this.clearData());
 
@@ -755,6 +757,111 @@ class MealPrepApp {
         } catch (error) {
             console.error('❌ CRITICAL ERROR adding sample logs:', error);
             this.showToast('❌ Error adding sample logs. Check console.');
+        }
+    }
+
+    async subscribeToPush() {
+        console.log('📡 Subscribing to push notifications...');
+
+        // Check if Push API is supported
+        if (!('PushManager' in window)) {
+            this.showToast('Push notifications not supported in this browser');
+            return;
+        }
+
+        // Check if VAPID key is configured
+        if (!CONFIG || CONFIG.VAPID_PUBLIC_KEY === 'YOUR_VAPID_PUBLIC_KEY_HERE') {
+            this.showToast('Push notifications require VAPID key configuration. Deploy to Vercel first!');
+            console.error('VAPID key not configured. Run: npm run generate-vapid');
+            return;
+        }
+
+        try {
+            // Request notification permission first
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                this.showToast('Notification permission denied');
+                return;
+            }
+
+            // Get service worker registration
+            const registration = await navigator.serviceWorker.ready;
+            console.log('Service worker ready');
+
+            // Check if already subscribed
+            let subscription = await registration.pushManager.getSubscription();
+
+            if (subscription) {
+                console.log('Already subscribed:', subscription);
+                this.updatePushStatus('Subscribed');
+                this.showToast('Already subscribed to push notifications!');
+            } else {
+                // Subscribe to push notifications
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true, // Required - must show a notification
+                    applicationServerKey: urlBase64ToUint8Array(CONFIG.VAPID_PUBLIC_KEY)
+                });
+                console.log('New subscription:', subscription);
+            }
+
+            // Send subscription to server
+            const response = await fetch(CONFIG.API_SUBSCRIBE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscription: subscription.toJSON(),
+                    preferences: {
+                        times: ['11:00', '15:00', '20:00'],
+                        timezone: 'America/New_York'
+                    }
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Subscription saved to server:', result);
+                this.updatePushStatus('✅ Subscribed');
+                this.showToast('🎉 Push notifications enabled! You\'ll get notified even when browser is closed.');
+            } else {
+                throw new Error('Failed to save subscription to server');
+            }
+
+        } catch (error) {
+            console.error('❌ Push subscription error:', error);
+            this.showToast('Failed to subscribe. Are you deployed to Vercel?');
+            this.updatePushStatus('❌ Failed');
+        }
+    }
+
+    updatePushStatus(status) {
+        const statusEl = document.getElementById('push-status');
+        if (statusEl) {
+            statusEl.textContent = status;
+            if (status.includes('✅')) {
+                statusEl.style.color = 'var(--primary-color)';
+            } else if (status.includes('❌')) {
+                statusEl.style.color = 'red';
+            }
+        }
+    }
+
+    async checkPushSubscription() {
+        // Check if already subscribed on page load
+        if ('PushManager' in window) {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+
+                if (subscription) {
+                    this.updatePushStatus('✅ Subscribed');
+                } else {
+                    this.updatePushStatus('Not subscribed');
+                }
+            } catch (error) {
+                this.updatePushStatus('Not available');
+            }
+        } else {
+            this.updatePushStatus('Not supported');
         }
     }
 

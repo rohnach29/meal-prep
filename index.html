@@ -105,6 +105,20 @@
                 <button id="enable-notifications-btn" class="btn btn-secondary">Enable Notifications</button>
                 <p class="notification-status">Status: <span id="notification-status">Not enabled</span></p>
 
+                <div style="margin-top: 1.5rem; padding: 1rem; background: #fef3c7; border-radius: var(--radius); border: 1px solid #f59e0b;">
+                    <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem;">🚀 Background Push Notifications</h4>
+                    <p style="font-size: 0.813rem; color: var(--text-secondary); margin: 0 0 0.75rem 0;">
+                        Get notifications even when the browser is closed! Works on desktop and Android.
+                        <strong>Requires deployment to Vercel.</strong>
+                    </p>
+                    <button id="subscribe-push-btn" class="btn btn-primary" style="width: 100%; font-size: 0.875rem;">
+                        📡 Subscribe to Push Notifications
+                    </button>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 0.5rem 0 0 0;">
+                        Push status: <span id="push-status" style="font-weight: 600;">Not subscribed</span>
+                    </p>
+                </div>
+
                 <div class="form-group" style="margin-top: 1.5rem;">
                     <label>
                         <input type="checkbox" id="test-mode-checkbox" style="width: auto; margin-right: 0.5rem;">
@@ -308,6 +322,7 @@
         </div>
     </div>
 
+    <script src="/config.js"></script>
     <script src="/db.js"></script>
     <script src="/app.js"></script>
 </body>

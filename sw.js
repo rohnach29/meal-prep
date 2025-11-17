@@ -391,3 +391,80 @@ self.addEventListener('message', async (event) => {
         });
     }
 });
+
+// Handle push notifications from server (Web Push API)
+// This works even when the browser is closed!
+self.addEventListener('push', (event) => {
+    console.log('📬 Push notification received from server!');
+
+    let data = {
+        title: 'MealPrep Reminder',
+        body: 'Time to log your meal!',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: 'meal-reminder',
+        data: {}
+    };
+
+    // Parse the push data if available
+    if (event.data) {
+        try {
+            data = event.data.json();
+            console.log('Push data:', data);
+        } catch (e) {
+            console.error('Error parsing push data:', e);
+        }
+    }
+
+    const options = {
+        body: data.body,
+        icon: data.icon || '/icon-192.png',
+        badge: data.badge || '/icon-192.png',
+        tag: data.tag || 'meal-reminder',
+        data: data.data || {},
+        requireInteraction: true, // Keep notification visible until user interacts
+        actions: [
+            { action: 'open', title: 'Open App' },
+            { action: 'dismiss', title: 'Dismiss' }
+        ]
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
+});
+
+// Handle push notification subscription change
+self.addEventListener('pushsubscriptionchange', (event) => {
+    console.log('🔄 Push subscription changed');
+    // Re-subscribe and update the server
+    event.waitUntil(
+        self.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(self.VAPID_PUBLIC_KEY)
+        }).then(subscription => {
+            // Send new subscription to server
+            return fetch('/api/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(subscription)
+            });
+        })
+    );
+});
+
+// Helper function to convert VAPID key
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
