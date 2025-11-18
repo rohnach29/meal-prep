@@ -4,9 +4,9 @@
 // Then copy the VAPID_PUBLIC_KEY here
 
 const CONFIG = {
-    // VAPID Public Key - REPLACE THIS after running generate-vapid script
+    // VAPID Public Key - Generated via npm run generate-vapid
     // This is safe to expose - it's the public key
-    VAPID_PUBLIC_KEY: 'YOUR_VAPID_PUBLIC_KEY_HERE',
+    VAPID_PUBLIC_KEY: 'BOs3lEWs9QItcFm8An8jeizAbqn6Etm6WxMh07Rz0ohz-MEBpmbNS8hDya6dmFFaFX7JmE3YpuOzbc5F0ukVPps',
 
     // API endpoints (will be relative to your Vercel deployment)
     API_SUBSCRIBE: '/api/subscribe',
