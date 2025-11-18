@@ -804,6 +804,23 @@ class MealPrepApp {
                 console.log('New subscription:', subscription);
             }
 
+            // Get notification times from UI inputs
+            const timeInputs = document.querySelectorAll('.notification-time-input');
+            const notificationTimes = Array.from(timeInputs)
+                .map(input => input.value)
+                .filter(time => time) // Remove empty values
+                .slice(0, 3); // Max 3 times
+
+            if (notificationTimes.length === 0) {
+                this.showToast('Please set at least one notification time');
+                return;
+            }
+
+            // Detect user's timezone
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            console.log(`User timezone: ${userTimezone}`);
+            console.log(`Notification times: ${notificationTimes.join(', ')}`);
+
             // Send subscription to server
             const response = await fetch(CONFIG.API_SUBSCRIBE, {
                 method: 'POST',
@@ -811,8 +828,8 @@ class MealPrepApp {
                 body: JSON.stringify({
                     subscription: subscription.toJSON(),
                     preferences: {
-                        times: ['11:00', '15:00', '20:00'],
-                        timezone: 'America/New_York'
+                        times: notificationTimes,
+                        timezone: userTimezone
                     }
                 })
             });

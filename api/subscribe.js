@@ -29,20 +29,29 @@ export default async function handler(req, res) {
             // Check if subscription already exists
             const exists = subscriptions.some(sub => sub.endpoint === subscription.endpoint);
 
-            if (!exists) {
-                subscriptions.push({
-                    subscription: subscription,
-                    createdAt: new Date().toISOString(),
-                    // Store user preferences (notification times, etc.)
-                    preferences: req.body.preferences || {
-                        times: ['11:00', '15:00', '20:00'],
-                        timezone: 'America/New_York'
-                    }
-                });
+            // Always update preferences even if subscription exists
+            const existingIndex = subscriptions.findIndex(sub => sub.endpoint === subscription.endpoint);
 
-                await kv.set('push_subscriptions', subscriptions);
+            const subscriptionData = {
+                subscription: subscription,
+                createdAt: exists ? subscriptions[existingIndex].createdAt : new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                // Store user preferences (notification times in HH:MM format, timezone)
+                preferences: req.body.preferences || {
+                    times: ['11:00', '15:00', '20:00'], // Default times
+                    timezone: 'America/New_York'
+                }
+            };
+
+            if (exists) {
+                subscriptions[existingIndex] = subscriptionData;
+                console.log(`Subscription updated. Total: ${subscriptions.length}`);
+            } else {
+                subscriptions.push(subscriptionData);
                 console.log(`New subscription saved. Total: ${subscriptions.length}`);
             }
+
+            await kv.set('push_subscriptions', subscriptions);
 
             return res.status(200).json({
                 success: true,

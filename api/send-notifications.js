@@ -1,5 +1,6 @@
 // API endpoint to send push notifications
-// This is called by Vercel Cron Jobs at scheduled times
+// Called by external cron service (runs hourly)
+// Checks each user's preferences and sends notifications at their chosen times
 
 import webpush from 'web-push';
 import { kv } from '@vercel/kv';
@@ -11,13 +12,8 @@ webpush.setVapidDetails(
     process.env.VAPID_PRIVATE_KEY
 );
 
-// Get time of day based on current hour in EST
-function getTimeOfDay() {
-    const now = new Date();
-    // Convert to EST
-    const estTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const hour = estTime.getHours();
-
+// Get time of day based on current hour
+function getTimeOfDay(hour) {
     if (hour >= 5 && hour < 13) {
         return 'morning';
     } else if (hour >= 13 && hour < 17) {
@@ -25,6 +21,28 @@ function getTimeOfDay() {
     } else {
         return 'night';
     }
+}
+
+// Get current time in user's timezone as HH:MM
+function getCurrentTimeInTimezone(timezone) {
+    const now = new Date();
+    const timeInZone = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+    const hours = String(timeInZone.getHours()).padStart(2, '0');
+    const minutes = String(timeInZone.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+// Check if user should receive notification at current time
+function shouldNotifyNow(preferences) {
+    if (!preferences || !preferences.times || preferences.times.length === 0) {
+        return false;
+    }
+
+    const timezone = preferences.timezone || 'America/New_York';
+    const currentTime = getCurrentTimeInTimezone(timezone);
+
+    // Check if current time (HH:MM) matches any of the user's preferred times
+    return preferences.times.includes(currentTime);
 }
 
 export default async function handler(req, res) {
@@ -41,11 +59,11 @@ export default async function handler(req, res) {
     }
 
     try {
-        console.log('🔔 Sending scheduled push notifications...');
+        console.log('🔔 Checking for scheduled notifications...');
 
         // Get all subscriptions
         const subscriptions = await kv.get('push_subscriptions') || [];
-        console.log(`Found ${subscriptions.length} subscriptions`);
+        console.log(`Found ${subscriptions.length} total subscriptions`);
 
         if (subscriptions.length === 0) {
             return res.status(200).json({
@@ -55,33 +73,45 @@ export default async function handler(req, res) {
             });
         }
 
-        const timeOfDay = getTimeOfDay();
-        console.log(`Current time period: ${timeOfDay}`);
-
-        // Prepare notification payload
-        const notificationPayload = JSON.stringify({
-            title: 'MealPrep Reminder',
-            body: `Time to log your ${timeOfDay} meal!`,
-            icon: '/icon-192.png',
-            badge: '/icon-192.png',
-            tag: `meal-reminder-${Date.now()}`,
-            data: {
-                timeOfDay: timeOfDay,
-                url: '/',
-                timestamp: Date.now()
-            }
-        });
-
         let successCount = 0;
         let failCount = 0;
+        let skippedCount = 0;
         const failedEndpoints = [];
 
-        // Send to all subscriptions
+        // Check each subscription and send if their notification time matches
         for (const sub of subscriptions) {
             try {
+                // Check if this user should be notified now
+                if (!shouldNotifyNow(sub.preferences)) {
+                    skippedCount++;
+                    continue; // Skip this user - not their notification time
+                }
+
+                // Get timezone-aware time of day for this user
+                const timezone = sub.preferences?.timezone || 'America/New_York';
+                const timeInZone = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
+                const hour = timeInZone.getHours();
+                const timeOfDay = getTimeOfDay(hour);
+
+                // Prepare notification payload
+                const notificationPayload = JSON.stringify({
+                    title: 'MealPrep Reminder',
+                    body: `Time to log your ${timeOfDay} meal!`,
+                    icon: '/icon-192.png',
+                    badge: '/icon-192.png',
+                    tag: `meal-reminder-${Date.now()}`,
+                    data: {
+                        timeOfDay: timeOfDay,
+                        url: '/',
+                        timestamp: Date.now()
+                    }
+                });
+
+                // Send notification
                 await webpush.sendNotification(sub.subscription, notificationPayload);
                 successCount++;
-                console.log(`✅ Notification sent to subscription`);
+                console.log(`✅ Notification sent (${timeOfDay})`);
+
             } catch (error) {
                 failCount++;
                 console.error(`❌ Failed to send notification:`, error.message);
@@ -102,14 +132,15 @@ export default async function handler(req, res) {
             console.log(`Removed ${failedEndpoints.length} invalid subscriptions`);
         }
 
-        console.log(`📊 Results: ${successCount} sent, ${failCount} failed`);
+        console.log(`📊 Results: ${successCount} sent, ${failCount} failed, ${skippedCount} skipped (not their time)`);
 
         return res.status(200).json({
             success: true,
-            message: 'Notifications sent',
+            message: 'Notifications processed',
             sent: successCount,
             failed: failCount,
-            timeOfDay: timeOfDay
+            skipped: skippedCount,
+            total: subscriptions.length
         });
 
     } catch (error) {

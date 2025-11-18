@@ -1,6 +1,6 @@
 # External Cron Setup for Push Notifications
 
-Since Vercel's free Hobby plan only allows daily cron jobs, we'll use a **free external cron service** to trigger notifications 3 times per day.
+Since Vercel's free Hobby plan only allows daily cron jobs, we'll use a **free external cron service** to trigger the notification API hourly. The API automatically checks each user's notification preferences and only sends notifications to users whose preferred times match the current hour.
 
 ## Option 1: cron-job.org (Recommended - Easiest)
 
@@ -29,38 +29,28 @@ Since Vercel's free Hobby plan only allows daily cron jobs, we'll use a **free e
 4. **Sign up at [cron-job.org](https://cron-job.org)**
    - Free account, no credit card required
 
-5. **Create 3 Cron Jobs**
+5. **Create 1 Hourly Cron Job**
 
-   **Job 1 - Morning (11:00 AM EST)**
-   - Title: `MealPrep Morning Notification`
+   - Title: `MealPrep Hourly Notification Check`
    - URL: `https://YOUR-APP.vercel.app/api/send-notifications`
-   - Schedule: Daily at `11:00 AM` in timezone `America/New_York`
+   - Schedule: **Hourly** - Every hour at minute 0 (e.g., 1:00, 2:00, 3:00...)
+     - Pattern: `0 * * * *` or select "Every 1 hour" in the UI
    - Request Method: `GET`
    - Custom Headers:
      - Header: `x-cron-secret`
      - Value: `YOUR_CRON_SECRET`
 
-   **Job 2 - Afternoon (3:00 PM EST)**
-   - Title: `MealPrep Afternoon Notification`
-   - URL: `https://YOUR-APP.vercel.app/api/send-notifications`
-   - Schedule: Daily at `3:00 PM` in timezone `America/New_York`
-   - Request Method: `GET`
-   - Custom Headers:
-     - Header: `x-cron-secret`
-     - Value: `YOUR_CRON_SECRET`
-
-   **Job 3 - Night (8:00 PM EST)**
-   - Title: `MealPrep Night Notification`
-   - URL: `https://YOUR-APP.vercel.app/api/send-notifications`
-   - Schedule: Daily at `8:00 PM` in timezone `America/New_York`
-   - Request Method: `GET`
-   - Custom Headers:
-     - Header: `x-cron-secret`
-     - Value: `YOUR_CRON_SECRET`
+   **How it works:**
+   - The cron job triggers every hour
+   - The API checks all subscribed users
+   - For each user, it checks if the current time (in their timezone) matches one of their preferred notification times
+   - Only sends notifications to users whose time matches
+   - Everyone else is skipped
 
 6. **Test immediately**
-   - Click "Execute now" on each job to test
-   - Check Vercel logs to confirm notifications were sent
+   - Click "Execute now" to test
+   - Check Vercel logs to see: "X sent, Y failed, Z skipped (not their time)"
+   - If you want to test receiving a notification, set one of your notification times to the current hour
 
 ---
 
@@ -74,23 +64,19 @@ Since Vercel's free Hobby plan only allows daily cron jobs, we'll use a **free e
 1. **Create `.github/workflows/notifications.yml`**
 
 ```yaml
-name: Send Meal Notifications
+name: Hourly Notification Check
 
 on:
   schedule:
-    # 11:00 AM EST = 16:00 UTC
-    - cron: '0 16 * * *'
-    # 3:00 PM EST = 20:00 UTC
-    - cron: '0 20 * * *'
-    # 8:00 PM EST = 01:00 UTC (next day)
-    - cron: '0 1 * * *'
+    # Run every hour at minute 0 (UTC)
+    - cron: '0 * * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
-  notify:
+  check-notifications:
     runs-on: ubuntu-latest
     steps:
-      - name: Send notification request
+      - name: Trigger notification API
         run: |
           curl -X GET \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \

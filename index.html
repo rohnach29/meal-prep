@@ -108,9 +108,23 @@
                 <div style="margin-top: 1.5rem; padding: 1rem; background: #fef3c7; border-radius: var(--radius); border: 1px solid #f59e0b;">
                     <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem;">🚀 Background Push Notifications</h4>
                     <p style="font-size: 0.813rem; color: var(--text-secondary); margin: 0 0 0.75rem 0;">
-                        Get notifications even when the browser is closed! Works on desktop and Android.
-                        <strong>Requires deployment to Vercel.</strong>
+                        Get notifications even when the browser is closed! Works on desktop and iOS 16.4+
                     </p>
+
+                    <div id="notification-times-config" style="margin-bottom: 1rem;">
+                        <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">
+                            Notification Times (up to 3)
+                        </label>
+                        <div id="time-inputs-container" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <input type="time" class="notification-time-input" value="11:00" style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem;">
+                            <input type="time" class="notification-time-input" value="15:00" style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem;">
+                            <input type="time" class="notification-time-input" value="20:00" style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem;">
+                        </div>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 0.5rem 0 0 0;">
+                            Times are in your local timezone
+                        </p>
+                    </div>
+
                     <button id="subscribe-push-btn" class="btn btn-primary" style="width: 100%; font-size: 0.875rem;">
                         📡 Subscribe to Push Notifications
                     </button>
