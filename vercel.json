@@ -6,15 +6,7 @@
   "crons": [
     {
       "path": "/api/send-notifications",
-      "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/send-notifications",
-      "schedule": "0 20 * * *"
-    },
-    {
-      "path": "/api/send-notifications",
-      "schedule": "0 1 * * *"
+      "schedule": "0 * * * *"
     }
   ],
   "headers": [

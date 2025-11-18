@@ -33,6 +33,22 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Check if current hour is one of our target notification times
+    // Target times in UTC: 16:00 (11 AM EST), 20:00 (3 PM EST), 01:00 (8 PM EST)
+    const now = new Date();
+    const currentHourUTC = now.getUTCHours();
+    const targetHours = [16, 20, 1]; // 11 AM EST, 3 PM EST, 8 PM EST
+
+    if (!targetHours.includes(currentHourUTC)) {
+        console.log(`⏭️ Skipping - current UTC hour ${currentHourUTC} is not a target time`);
+        return res.status(200).json({
+            success: true,
+            message: 'Not a scheduled notification time',
+            currentHourUTC: currentHourUTC,
+            targetHours: targetHours
+        });
+    }
+
     // Verify cron secret (optional security)
     const cronSecret = req.headers['authorization'];
     if (process.env.CRON_SECRET && cronSecret !== `Bearer ${process.env.CRON_SECRET}`) {
