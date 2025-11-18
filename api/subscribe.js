@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
         // Save a new subscription
         try {
-            const subscription = req.body;
+            const { subscription, preferences } = req.body;
 
             if (!subscription || !subscription.endpoint) {
                 return res.status(400).json({ error: 'Invalid subscription' });
@@ -27,17 +27,17 @@ export default async function handler(req, res) {
             let subscriptions = await kv.get('push_subscriptions') || [];
 
             // Check if subscription already exists
-            const exists = subscriptions.some(sub => sub.endpoint === subscription.endpoint);
+            const exists = subscriptions.some(sub => sub.subscription.endpoint === subscription.endpoint);
 
             // Always update preferences even if subscription exists
-            const existingIndex = subscriptions.findIndex(sub => sub.endpoint === subscription.endpoint);
+            const existingIndex = subscriptions.findIndex(sub => sub.subscription.endpoint === subscription.endpoint);
 
             const subscriptionData = {
                 subscription: subscription,
                 createdAt: exists ? subscriptions[existingIndex].createdAt : new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 // Store user preferences (notification times in HH:MM format, timezone)
-                preferences: req.body.preferences || {
+                preferences: preferences || {
                     times: ['11:00', '15:00', '20:00'], // Default times
                     timezone: 'America/New_York'
                 }
