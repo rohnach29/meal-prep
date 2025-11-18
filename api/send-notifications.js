@@ -52,6 +52,15 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Check required environment variables
+    if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+        console.error('❌ VAPID keys not configured');
+        return res.status(500).json({
+            error: 'Server configuration error',
+            details: 'VAPID keys not set. Add VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to environment variables.'
+        });
+    }
+
     // Verify cron secret for security
     const cronSecret = req.headers['x-cron-secret'] || req.headers['authorization'];
     if (process.env.CRON_SECRET && cronSecret !== process.env.CRON_SECRET && cronSecret !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -63,7 +72,17 @@ export default async function handler(req, res) {
         console.log('🔔 Checking for scheduled notifications...');
 
         // Get all subscriptions
-        const subscriptions = await kv.get('push_subscriptions') || [];
+        let subscriptions;
+        try {
+            subscriptions = await kv.get('push_subscriptions') || [];
+        } catch (kvError) {
+            console.error('❌ Vercel KV error:', kvError.message);
+            return res.status(500).json({
+                error: 'Database connection failed',
+                details: 'Vercel KV not configured. Create a KV database in Vercel Dashboard → Storage.',
+                kvError: kvError.message
+            });
+        }
         console.log(`Found ${subscriptions.length} total subscriptions`);
 
         if (subscriptions.length === 0) {
