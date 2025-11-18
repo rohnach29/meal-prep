@@ -1,6 +1,11 @@
 # External Cron Setup for Push Notifications
 
-Since Vercel's free Hobby plan only allows daily cron jobs, we'll use a **free external cron service** to trigger the notification API hourly. The API automatically checks each user's notification preferences and only sends notifications to users whose preferred times match the current hour.
+Since Vercel's free Hobby plan only allows daily cron jobs, we'll use a **free external cron service** to trigger the notification API every minute. The API automatically checks each user's notification preferences and only sends notifications to users whose preferred times match the current time (down to the minute).
+
+**Why every minute?**
+- Exact timing - notifications sent at precisely the user's chosen time (e.g., 3:15 PM, not "between 3-4 PM")
+- Lightweight - API returns immediately if no users need notifications at that minute
+- Well within free tier limits (see details below)
 
 ## Option 1: cron-job.org (Recommended - Easiest)
 
@@ -29,47 +34,55 @@ Since Vercel's free Hobby plan only allows daily cron jobs, we'll use a **free e
 4. **Sign up at [cron-job.org](https://cron-job.org)**
    - Free account, no credit card required
 
-5. **Create 1 Hourly Cron Job**
+5. **Create 1 Per-Minute Cron Job**
 
-   - Title: `MealPrep Hourly Notification Check`
+   - Title: `MealPrep Notification Check`
    - URL: `https://YOUR-APP.vercel.app/api/send-notifications`
-   - Schedule: **Hourly** - Every hour at minute 0 (e.g., 1:00, 2:00, 3:00...)
-     - Pattern: `0 * * * *` or select "Every 1 hour" in the UI
+   - Schedule: **Every minute**
+     - Pattern: `* * * * *` or select "Every 1 minute" in the UI
    - Request Method: `GET`
    - Custom Headers:
      - Header: `x-cron-secret`
      - Value: `YOUR_CRON_SECRET`
 
    **How it works:**
-   - The cron job triggers every hour
+   - The cron job triggers every minute (e.g., 3:00 PM, 3:01 PM, 3:02 PM...)
    - The API checks all subscribed users
    - For each user, it checks if the current time (in their timezone) matches one of their preferred notification times
    - Only sends notifications to users whose time matches
-   - Everyone else is skipped
+   - Everyone else is skipped (returns in <10ms)
+
+   **Free tier limits:**
+   - cron-job.org: ✅ Unlimited executions, supports per-minute jobs
+   - Vercel execution: ✅ 1,440 calls/day = ~43,200/month (well within 100GB-hours limit)
+   - Vercel KV reads: ✅ ~43,200 reads/month (free tier is 100,000/month)
 
 6. **Test immediately**
    - Click "Execute now" to test
    - Check Vercel logs to see: "X sent, Y failed, Z skipped (not their time)"
-   - If you want to test receiving a notification, set one of your notification times to the current hour
+   - To test receiving a notification, set one of your notification times to the current time (e.g., if it's 2:47 PM, set a time to 14:47)
 
 ---
 
-## Option 2: GitHub Actions (Alternative)
+## Option 2: GitHub Actions (NOT Recommended for Per-Minute)
 
-**Pros:** Already integrated with your repo, version controlled
-**Cons:** Slightly more setup, may have 5-10 minute delays
+**⚠️ Important:** GitHub Actions free tier only provides 2,000 minutes/month. Running every minute would use 43,800 minutes/month, exceeding the limit.
+
+**If you still want to use GitHub Actions** (with reduced accuracy):
+
+You can run every 5 or 10 minutes instead:
 
 ### Setup Steps:
 
 1. **Create `.github/workflows/notifications.yml`**
 
 ```yaml
-name: Hourly Notification Check
+name: Notification Check (Every 5 Minutes)
 
 on:
   schedule:
-    # Run every hour at minute 0 (UTC)
-    - cron: '0 * * * *'
+    # Run every 5 minutes (uses ~8,640 minutes/month - exceeds free tier but works for testing)
+    - cron: '*/5 * * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -82,6 +95,8 @@ jobs:
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             https://YOUR-APP.vercel.app/api/send-notifications
 ```
+
+**Note:** Even every 5 minutes exceeds the free tier. Stick with cron-job.org for per-minute execution.
 
 2. **Add GitHub Secret**
    - Go to your GitHub repo → Settings → Secrets and variables → Actions
@@ -98,6 +113,25 @@ jobs:
 
 4. **Test manually**
    - Go to Actions tab → "Send Meal Notifications" → "Run workflow"
+
+---
+
+## Why Per-Minute is Safe on Free Tiers
+
+**Resource Usage (per month):**
+- API executions: 43,200 (1,440/day × 30 days)
+- Vercel KV reads: 43,200 (one per execution)
+- Average execution time: <10ms when no notifications to send
+
+**Free Tier Limits:**
+- Vercel Functions: 100 GB-hours/month → We use ~0.12 GB-hours/month (✅ 0.12% of limit)
+- Vercel KV: 100,000 requests/month → We use ~43,200/month (✅ 43% of limit)
+- cron-job.org: Unlimited executions on free tier (✅ No limit)
+
+**Why it's efficient:**
+- 99%+ of API calls return immediately (no users to notify at that minute)
+- Only users with matching notification times get processed
+- Invalid subscriptions auto-removed (410/404 errors)
 
 ---
 

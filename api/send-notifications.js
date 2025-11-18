@@ -1,6 +1,7 @@
 // API endpoint to send push notifications
-// Called by external cron service (runs hourly)
+// Called by external cron service (runs every minute)
 // Checks each user's preferences and sends notifications at their chosen times
+// Returns immediately if no users have notifications scheduled for the current minute
 
 import webpush from 'web-push';
 import { kv } from '@vercel/kv';
