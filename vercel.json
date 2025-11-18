@@ -3,12 +3,6 @@
   "framework": null,
   "buildCommand": "npm install",
   "outputDirectory": ".",
-  "crons": [
-    {
-      "path": "/api/send-notifications",
-      "schedule": "0 * * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
