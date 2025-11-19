@@ -687,8 +687,14 @@ class MealPrepApp {
         const time1 = document.getElementById('notif-time-1').value;
         const time2 = document.getElementById('notif-time-2').value;
         const time3 = document.getElementById('notif-time-3').value;
-        const times = [time1, time2, time3];
+        const times = [time1, time2, time3].filter(t => t); // Remove empty values
 
+        if (times.length === 0) {
+            this.showToast('Please set at least one notification time');
+            return;
+        }
+
+        // Update local settings
         const existingSettings = await db.getSetting('notifications') || {};
         await db.updateSetting('notifications', {
             ...existingSettings,
@@ -696,8 +702,54 @@ class MealPrepApp {
         });
 
         this.updateCurrentNotificationTimesList(times);
-        await this.scheduleNotifications();
+        await this.scheduleNotifications(); // For local/test notifications
+
+        // Also update push subscription if user is subscribed
+        await this.updatePushSubscriptionTimes(times);
+
         this.showToast('Notification times saved!');
+    }
+
+    async updatePushSubscriptionTimes(times) {
+        // Check if user has push subscription
+        if (!('PushManager' in window)) {
+            return; // Push not supported
+        }
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+
+            if (!subscription) {
+                console.log('No push subscription found, skipping update');
+                return; // Not subscribed to push
+            }
+
+            // User is subscribed, update their preferences
+            const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            console.log(`Updating push subscription times: ${times.join(', ')}`);
+
+            const response = await fetch(CONFIG.API_SUBSCRIBE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscription: subscription.toJSON(),
+                    preferences: {
+                        times: times,
+                        timezone: userTimezone
+                    }
+                })
+            });
+
+            if (response.ok) {
+                console.log('✅ Push subscription times updated');
+            } else {
+                console.warn('Failed to update push subscription times');
+            }
+        } catch (error) {
+            console.error('Error updating push subscription times:', error);
+            // Don't show error to user - this is a background update
+        }
     }
 
     async toggleTestMode(enabled) {
