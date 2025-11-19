@@ -72,11 +72,6 @@ class MealPrepApp {
 
         // Settings
         document.getElementById('save-goals-btn').addEventListener('click', () => this.saveGoals());
-        document.getElementById('enable-notifications-btn').addEventListener('click', () => this.enableNotifications());
-        document.getElementById('save-notification-times-btn').addEventListener('click', () => this.saveNotificationTimes());
-        document.getElementById('test-mode-checkbox').addEventListener('change', (e) => this.toggleTestMode(e.target.checked));
-        document.getElementById('test-notification-now').addEventListener('click', () => this.testNotificationNow());
-        document.getElementById('force-add-sample-logs').addEventListener('click', () => this.forceAddSampleLogs());
         document.getElementById('subscribe-push-btn').addEventListener('click', () => this.subscribeToPush());
         document.getElementById('export-data-btn').addEventListener('click', () => this.exportData());
         document.getElementById('clear-data-btn').addEventListener('click', () => this.clearData());
@@ -593,21 +588,8 @@ class MealPrepApp {
         document.getElementById('carbs-goal').value = goals.carbsGoal;
         document.getElementById('fat-goal').value = goals.fatGoal;
 
-        // Load notification settings
-        const notifSettings = await db.getSetting('notifications');
-        if (notifSettings) {
-            const times = notifSettings.times || ['11:00', '15:00', '20:00'];
-            document.getElementById('notif-time-1').value = times[0] || '11:00';
-            document.getElementById('notif-time-2').value = times[1] || '15:00';
-            document.getElementById('notif-time-3').value = times[2] || '20:00';
-            document.getElementById('test-mode-checkbox').checked = notifSettings.testMode || false;
-
-            this.updateCurrentNotificationTimesList(times);
-        }
-
-        // Update system time display
-        this.updateSystemTime();
-        setInterval(() => this.updateSystemTime(), 1000);
+        // Check push subscription status
+        this.checkPushSubscription();
     }
 
     updateSystemTime() {
@@ -844,9 +826,7 @@ class MealPrepApp {
             let subscription = await registration.pushManager.getSubscription();
 
             if (subscription) {
-                console.log('Already subscribed:', subscription);
-                this.updatePushStatus('Subscribed');
-                this.showToast('Already subscribed to push notifications!');
+                console.log('Updating existing subscription:', subscription);
             } else {
                 // Subscribe to push notifications
                 subscription = await registration.pushManager.subscribe({
@@ -889,8 +869,8 @@ class MealPrepApp {
             if (response.ok) {
                 const result = await response.json();
                 console.log('Subscription saved to server:', result);
-                this.updatePushStatus('✅ Subscribed');
-                this.showToast('🎉 Push notifications enabled! You\'ll get notified even when browser is closed.');
+                this.updatePushStatus('✅ Saved');
+                this.showToast('✅ Notification times saved! You\'ll get reminders even when the app is closed.');
             } else {
                 throw new Error('Failed to save subscription to server');
             }
