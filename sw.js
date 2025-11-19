@@ -1,6 +1,6 @@
 // Service Worker for MealPrep PWA
-// Updated: 2025-11-14 11:15 AM EST
-const CACHE_NAME = 'mealprep-v3';
+// Updated: 2025-11-19 - UI Cleanup
+const CACHE_NAME = 'mealprep-v4';
 const urlsToCache = [
     '/',
     '/index.html',
