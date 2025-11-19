@@ -397,41 +397,25 @@ self.addEventListener('message', async (event) => {
 self.addEventListener('push', (event) => {
     console.log('📬 Push notification received from server!');
 
-    let data = {
-        title: 'MealPrep Reminder',
-        body: 'Time to log your meal!',
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        tag: 'meal-reminder',
-        data: {}
-    };
-
-    // Parse the push data if available
+    // Parse the push data if available (contains timeOfDay info)
+    let timeOfDay = 'morning';
     if (event.data) {
         try {
-            data = event.data.json();
+            const data = event.data.json();
             console.log('Push data:', data);
+            timeOfDay = data.data?.timeOfDay || getTimeOfDay();
         } catch (e) {
             console.error('Error parsing push data:', e);
+            timeOfDay = getTimeOfDay();
         }
+    } else {
+        timeOfDay = getTimeOfDay();
     }
 
-    const options = {
-        body: data.body,
-        icon: data.icon || '/icon-192.png',
-        badge: data.badge || '/icon-192.png',
-        tag: data.tag || 'meal-reminder',
-        data: data.data || {},
-        requireInteraction: true, // Keep notification visible until user interacts
-        actions: [
-            { action: 'open', title: 'Open App' },
-            { action: 'dismiss', title: 'Dismiss' }
-        ]
-    };
+    console.log(`Push notification for ${timeOfDay} time period`);
 
-    event.waitUntil(
-        self.registration.showNotification(data.title, options)
-    );
+    // Show 5 separate notifications with recent foods (same as local notifications)
+    event.waitUntil(showMealNotification());
 });
 
 // Handle push notification subscription change
