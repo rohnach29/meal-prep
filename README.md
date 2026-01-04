@@ -1,275 +1,93 @@
-# MealPrep - Smart Nutrition Tracker PWA
+# MealPrep - Complete Nutrition Tracker
 
-A Progressive Web App (PWA) for tracking meals, calories, and nutrition with intelligent scheduled notifications.
-
-> **⚠️ Important for iOS Users:** The main notification feature (action buttons) has **limited support on iPhone**. For the full experience, use **macOS with Chrome/Edge** or **Android**. [Read full iOS limitations →](IOS-LIMITATIONS.md)
+A Progressive Web App (PWA) for comprehensive nutrition tracking including macronutrients, micronutrients, vitamins, minerals, and omega fatty acid ratios.
 
 ## Features
 
-### Core Functionality
-- **Food Database**: Pre-loaded with 20 common foods, or add your own custom foods
-- **Meal Creation**: Combine multiple foods into reusable meals
-- **Calorie Tracking**: Track daily calories and macronutrients (protein, carbs, fat)
-- **Goal Setting**: Set and monitor daily nutrition goals
-- **Quick Logging**: Fast food/meal logging with search functionality
+### USDA Food Database Search
+Search the USDA FoodData Central database with detailed nutritional information for thousands of foods. Simply type a food name and get complete macro and micro nutrient data instantly.
 
-### Key Feature: Smart Notifications
-The app sends notifications at scheduled times (11:00 AM, 3:00 PM, 8:00 PM) showing your 5 most recently logged meals/foods. You can **click action buttons directly in the notification** to instantly log a meal without opening the app!
+### Complete Nutrient Tracking
+Track over 30 nutrients organized into categories:
 
-This makes meal logging incredibly fast and convenient.
+**Macronutrients**
+- Calories, Protein, Carbohydrates, Fat
+- Fiber, Sugar, Saturated Fat
 
-## Installation
+**Vitamins**
+- Vitamin A, C, D, E, K
+- B-Vitamins: B1 (Thiamin), B2 (Riboflavin), B3 (Niacin), B5 (Pantothenic Acid), B6, B12, Folate
 
-### Option 1: Local Development
-1. Clone this repository
-2. Serve the files using any static web server:
-   ```bash
-   # Using Python
-   python3 -m http.server 8000
+**Minerals**
+- Calcium, Iron, Magnesium, Phosphorus, Potassium
+- Sodium, Zinc, Copper, Manganese, Selenium
 
-   # Using Node.js
-   npx serve
+**Fatty Acids & Omega Ratio**
+- Omega-3 (ALA, EPA, DHA)
+- Omega-6 (Linoleic Acid)
+- Real-time Omega-6:Omega-3 ratio tracking with status indicator
 
-   # Using PHP
-   php -S localhost:8000
-   ```
-3. Open `http://localhost:8000` in your browser
-4. Click "Install App" when prompted to add to home screen
+### Personalized Goals
+Set up your profile with height, weight, age, sex, and activity level. The app calculates personalized daily goals using the Mifflin-St Jeor equation for BMR/TDEE, plus research-based micronutrient recommendations.
 
-### Option 2: Deploy to Hosting
-Deploy to any static hosting service:
-- **Netlify**: Drag and drop the folder
-- **Vercel**: `vercel deploy`
-- **GitHub Pages**: Push to gh-pages branch
-- **Firebase Hosting**: `firebase deploy`
+### Smart Notifications
+Receive scheduled notifications showing your recently logged foods for quick one-tap logging. Set custom notification times in settings.
 
-## Setup
+### Offline-First PWA
+Install as an app on your device. Works completely offline after initial load. All data stored locally on your device.
 
-### 1. Install the PWA
-When you first visit the app, you'll see an "Install App" button in the header. Click it to install the PWA to your home screen. This enables offline functionality and notifications.
+## Getting Started
 
-### 2. Enable Notifications
-1. Go to the **Settings** tab
-2. Click **Enable Notifications**
-3. Grant notification permissions when prompted
-4. Notifications will be automatically scheduled for 11:00 AM, 3:00 PM, and 8:00 PM
+### Install
+1. Visit the app URL in Chrome, Edge, or Safari
+2. Click "Install App" or use browser's install option
+3. The app will be added to your home screen
 
-### 3. Set Your Goals
-In the Settings tab, set your daily nutrition goals:
-- Calorie goal
-- Protein goal (grams)
-- Carbs goal (grams)
-- Fat goal (grams)
+### Set Up Your Profile
+1. Go to **Settings** tab
+2. Enter your profile information (height, weight, age, sex, activity level)
+3. Click **Calculate Goals from Profile**
+4. Your personalized macro and micronutrient goals are now set
 
-## Usage
+### Log Foods
+1. Tap the **+** button on the dashboard
+2. Type a food name to search the USDA database
+3. Select a food to see complete nutritional details
+4. Tap **Log Food** to add it to your daily intake
 
-### Dashboard
-The dashboard shows:
-- Current calories vs. goal
-- Macro breakdown (protein, carbs, fat)
-- Today's logged meals with timestamps
-- Quick add button (+) for fast logging
+### Track Progress
+- **Dashboard**: View today's progress for all nutrients
+- **Nutrient tabs**: Switch between Macros, Vitamins, Minerals, and Fatty Acids
+- **Omega Ratio**: Monitor your omega-6:omega-3 ratio (target: under 4:1)
 
-### Foods
-- Search through pre-loaded common foods
-- Add custom foods with nutritional information
-- Delete foods you don't need
-- Each food includes: name, serving size, calories, and macros
+## Understanding the Omega Ratio
 
-### Meals
-- Create meals from multiple foods
-- Save frequently eaten meal combinations
-- Automatically calculates total nutrition
-- Quickly log entire meals with one click
+The app tracks your omega-6 to omega-3 ratio, which is important for inflammation and overall health:
+- **Excellent (< 2:1)**: Optimal anti-inflammatory balance
+- **Good (2:1 - 4:1)**: Healthy range
+- **Fair (4:1 - 10:1)**: Could improve
+- **Poor (> 10:1)**: Typical Western diet, may promote inflammation
 
-### Quick Add (+ Button)
-Click the floating + button on the dashboard to:
-- Search all foods and meals
-- Instantly log items with one tap
-- Fastest way to log during the day
+## Data Privacy
 
-### Notification-Based Logging
-This is the killer feature! At 11 AM, 3 PM, and 8 PM, you'll receive a notification showing your 5 most recently logged items. **Click the action buttons directly in the notification** to log that item instantly without opening the app.
+All data is stored locally on your device using IndexedDB. No data is sent to any server. Your nutrition information stays completely private.
 
-Perfect for when you eat the same meals regularly!
+## Browser Support
 
-## Icons
+| Platform | Browser | Full Support |
+|----------|---------|--------------|
+| macOS | Chrome/Edge | Yes |
+| Windows | Chrome/Edge | Yes |
+| Android | Chrome | Yes |
+| iOS 16.4+ | Safari | Yes (limited notification actions) |
 
-The app currently has placeholder icons. To add proper icons:
+## Technical Stack
 
-### Option 1: Use generate-icons.html
-1. Open `generate-icons.html` in a web browser
-2. It will automatically generate and download:
-   - `icon-192.png` (192x192)
-   - `icon-512.png` (512x512)
-
-### Option 2: Create Your Own
-Create two PNG images:
-- `icon-192.png` (192x192 pixels)
-- `icon-512.png` (512x512 pixels)
-
-Recommended design:
-- Background color: #4CAF50 (green)
-- Icon: 🥗 emoji or salad bowl graphic
-- Leave some padding around edges
-
-After adding icons, update `manifest.json`:
-```json
-"icons": [
-  {
-    "src": "/icon-192.png",
-    "sizes": "192x192",
-    "type": "image/png",
-    "purpose": "any maskable"
-  },
-  {
-    "src": "/icon-512.png",
-    "sizes": "512x512",
-    "type": "image/png",
-    "purpose": "any maskable"
-  }
-]
-```
-
-## Data Management
-
-### Export Data
-Export all your data (foods, meals, logs) as JSON:
-1. Go to Settings
-2. Click "Export Data"
-3. Downloads a JSON file with all your data
-
-### Clear Data
-Clear all data to start fresh:
-1. Go to Settings
-2. Click "Clear All Data"
-3. Confirm the action
-
-## Browser Compatibility
-
-### ✅ Full Support (Recommended)
-**All features including notification actions:**
-- **macOS**: Chrome, Edge, Brave
-- **Windows**: Chrome, Edge
-- **Android**: Chrome, Edge, Samsung Internet
-- **Linux**: Chrome, Edge, Firefox
-
-### ⚠️ Limited Support
-**Basic features only, NO notification actions:**
-- **iOS 16.4+**: Safari only (all iOS browsers use Safari's engine)
-- **macOS Safari**: Limited PWA support
-
-### 📱 Platform Recommendations
-
-| Platform | Browser | Notification Actions | Recommendation |
-|----------|---------|---------------------|----------------|
-| macOS | Chrome/Edge | ✅ Yes | **Best for full experience** |
-| macOS | Safari | ❌ No | Not recommended |
-| iPhone/iOS | Safari | ❌ No | Limited - see [iOS Limitations](IOS-LIMITATIONS.md) |
-| Android | Chrome/Edge | ✅ Yes | **Full support** |
-| Windows | Chrome/Edge | ✅ Yes | **Full support** |
-
-**For iPhone Users:** The notification action buttons (main feature) don't work on iOS. Please read [IOS-LIMITATIONS.md](IOS-LIMITATIONS.md) for detailed explanation and recommended setup.
-
-## Technical Details
-
-### Technology Stack
-- **Frontend**: Vanilla JavaScript (no frameworks)
-- **Storage**: IndexedDB for local data
-- **PWA**: Service Workers for offline + notifications
-- **UI**: Custom CSS with responsive design
-
-### File Structure
-```
-meal-prep/
-├── index.html          # Main app UI
-├── styles.css          # App styling
-├── app.js              # Main app logic
-├── db.js               # IndexedDB database layer
-├── sw.js               # Service Worker (PWA + notifications)
-├── manifest.json       # PWA manifest
-├── generate-icons.html # Icon generator utility
-└── README.md          # This file
-```
-
-### Database Schema
-- **foods**: Store food items with nutrition info
-- **meals**: Store meal combinations
-- **logs**: Track consumed foods/meals by date
-- **settings**: User preferences and goals
-
-## Troubleshooting
-
-### Notifications Not Working
-1. Check browser supports notifications
-2. Verify notification permissions are granted
-3. Ensure service worker is registered (check DevTools)
-4. Try triggering a test notification from DevTools console:
-   ```javascript
-   navigator.serviceWorker.controller.postMessage({type: 'SHOW_TEST_NOTIFICATION'})
-   ```
-
-### App Not Installing
-1. Must be served over HTTPS (or localhost)
-2. Must have valid manifest.json
-3. Must have registered service worker
-4. Try in a different browser
-
-### Data Not Persisting
-1. Check IndexedDB is enabled
-2. Ensure browser isn't in private/incognito mode
-3. Check browser storage quota
-
-### Service Worker Not Updating
-1. Close all tabs with the app
-2. Clear service worker in DevTools
-3. Hard refresh (Ctrl+Shift+R or Cmd+Shift+R)
-
-## iOS and iPhone Users - READ THIS
-
-**The main notification feature (action buttons for quick logging) does NOT work on iPhone/iOS.**
-
-This is due to Apple's PWA limitations, not the app itself. On iOS you'll get notifications, but you'll need to open the app to log meals - defeating the quick-logging purpose.
-
-### Recommended Setup:
-1. **Use on macOS (Mac computer)** with Chrome or Edge - Get full notification action support
-2. **Use on Android** - Get full notification action support
-3. **Use on iPhone** - Only if you accept limited functionality
-
-For detailed explanation of iOS limitations and recommended setup, see [IOS-LIMITATIONS.md](IOS-LIMITATIONS.md)
-
-## Privacy
-
-All data is stored locally on your device using IndexedDB. No data is sent to any server. The app works completely offline after initial load.
-
-## Future Enhancements
-
-Potential improvements:
-- Barcode scanner for food entry
-- Photo-based food logging
-- Integration with fitness trackers
-- Recipe suggestions based on goals
-- Social sharing of meals
-- Nutrition trends and analytics
-- Water intake tracking
-- Custom notification times
-
-## Contributing
-
-Feel free to fork and customize for your needs! The code is straightforward vanilla JavaScript.
+- Vanilla JavaScript (no frameworks)
+- IndexedDB for local storage
+- Service Workers for offline support
+- USDA FoodData Central API for food data
 
 ## License
 
-MIT License - Use freely for personal or commercial projects.
-
-## Support
-
-For issues or questions:
-1. Check the Troubleshooting section
-2. Review browser console for errors
-3. Test in a different browser
-4. Create an issue with details
-
----
-
-**Enjoy tracking your nutrition with smart notifications!** 🥗
+MIT License
