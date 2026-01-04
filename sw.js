@@ -1,6 +1,6 @@
 // Service Worker for MealPrep PWA
-// Updated: 2025-11-19 - UI Cleanup
-const CACHE_NAME = 'mealprep-v4';
+// Updated: 2026-01-04 - Complete nutrition tracking with micronutrients
+const CACHE_NAME = 'mealprep-v5';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -45,7 +45,7 @@ self.addEventListener('fetch', (event) => {
 // IndexedDB helper functions for Service Worker
 function openDatabase() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open('MealPrepDB', 2); // Updated to version 2
+        const request = indexedDB.open('MealPrepDB', 3); // Updated to version 3 for micronutrients
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
     });

@@ -1,7 +1,7 @@
 {
   "name": "MealPrep - Smart Nutrition Tracker",
   "short_name": "MealPrep",
-  "description": "Track your meals, calories, and nutrition with smart notifications",
+  "description": "Complete nutrition tracker with macros, micronutrients, vitamins, minerals, and omega-3:omega-6 ratio tracking. Search USDA database for detailed food data.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#4CAF50">
-    <meta name="description" content="Track your meals, calories, and nutrition with smart notifications">
-    <title>MealPrep - Smart Nutrition Tracker</title>
+    <meta name="theme-color" content="#10b981">
+    <meta name="description" content="Track your meals, macros, micronutrients, and omega-3:omega-6 ratio with smart notifications">
+    <title>MealPrep - Complete Nutrition Tracker</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="/styles.css">
     <link rel="icon" type="image/png" href="/icon-192.png">
@@ -14,7 +14,7 @@
     <div id="app">
         <!-- Header -->
         <header class="header">
-            <h1>🥗 MealPrep</h1>
+            <h1>MealPrep</h1>
             <button id="install-btn" class="install-btn" style="display: none;">Install App</button>
         </header>
 
@@ -52,6 +52,38 @@
                 </div>
             </div>
 
+            <!-- Omega Ratio Card -->
+            <div class="omega-card">
+                <div class="omega-header">
+                    <h3>Omega-3 : Omega-6 Ratio</h3>
+                    <span id="omega-status" class="omega-status">Log foods to track</span>
+                </div>
+                <div class="omega-display">
+                    <div class="omega-ratio-container">
+                        <span class="omega-label">Omega-3</span>
+                        <span id="omega-ratio" class="omega-ratio">--</span>
+                        <span class="omega-label">Omega-6</span>
+                    </div>
+                    <div class="omega-values">
+                        <span id="omega3-value">0g</span>
+                        <span class="omega-target">Target: 1:1 to 1:4</span>
+                        <span id="omega6-value">0g</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nutrient Tracking Section -->
+            <div class="section nutrient-section-card">
+                <div class="nutrient-tabs">
+                    <button class="nutrient-tab active" data-nutrients="macros">More Macros</button>
+                    <button class="nutrient-tab" data-nutrients="vitamins">Vitamins</button>
+                    <button class="nutrient-tab" data-nutrients="minerals">Minerals</button>
+                </div>
+                <div id="nutrient-details" class="nutrient-details">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
             <div class="section">
                 <h3>Today's Meals</h3>
                 <div id="today-meals-list" class="meals-list">
@@ -65,9 +97,10 @@
         <!-- Foods View -->
         <div id="foods-view" class="view">
             <div class="search-section">
-                <input type="text" id="food-search" class="search-input" placeholder="Search foods...">
-                <button id="add-custom-food-btn" class="btn btn-primary">+ Add Custom Food</button>
+                <input type="text" id="food-search" class="search-input" placeholder="Search foods or USDA database...">
+                <button id="add-custom-food-btn" class="btn btn-primary">+ Add Custom</button>
             </div>
+            <div id="usda-search-results" class="usda-results-section"></div>
             <div id="foods-list" class="items-list"></div>
         </div>
 
@@ -79,32 +112,81 @@
 
         <!-- Settings View -->
         <div id="settings-view" class="view">
+            <!-- Profile Section -->
+            <div class="settings-section">
+                <h3>Your Profile</h3>
+                <p class="settings-description">Enter your stats to calculate personalized nutrition goals based on your body and activity level.</p>
+
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>Height (cm)</label>
+                        <input type="number" id="profile-height" value="170" min="100" max="250">
+                    </div>
+                    <div class="form-group half">
+                        <label>Weight (kg)</label>
+                        <input type="number" id="profile-weight" value="70" min="30" max="300">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>Age</label>
+                        <input type="number" id="profile-age" value="30" min="10" max="120">
+                    </div>
+                    <div class="form-group half">
+                        <label>Sex</label>
+                        <select id="profile-sex">
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Activity Level</label>
+                    <select id="profile-activity">
+                        <option value="sedentary">Sedentary (little or no exercise)</option>
+                        <option value="light">Light (exercise 1-3 days/week)</option>
+                        <option value="moderate" selected>Moderate (exercise 3-5 days/week)</option>
+                        <option value="active">Active (exercise 6-7 days/week)</option>
+                        <option value="veryActive">Very Active (hard exercise daily)</option>
+                    </select>
+                </div>
+                <div class="button-row">
+                    <button id="save-profile-btn" class="btn btn-secondary">Save Profile</button>
+                    <button id="calculate-goals-btn" class="btn btn-primary">Calculate Goals</button>
+                </div>
+            </div>
+
+            <!-- Goals Section -->
             <div class="settings-section">
                 <h3>Daily Goals</h3>
-                <div class="form-group">
-                    <label>Calorie Goal</label>
-                    <input type="number" id="calorie-goal" value="2000" min="0" step="100">
+                <p class="settings-description">These are auto-calculated from your profile, but you can adjust them manually.</p>
+
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>Calories</label>
+                        <input type="number" id="calorie-goal" value="2000" min="0" step="100">
+                    </div>
+                    <div class="form-group half">
+                        <label>Protein (g)</label>
+                        <input type="number" id="protein-goal" value="150" min="0" step="10">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Protein Goal (g)</label>
-                    <input type="number" id="protein-goal" value="150" min="0" step="10">
-                </div>
-                <div class="form-group">
-                    <label>Carbs Goal (g)</label>
-                    <input type="number" id="carbs-goal" value="200" min="0" step="10">
-                </div>
-                <div class="form-group">
-                    <label>Fat Goal (g)</label>
-                    <input type="number" id="fat-goal" value="65" min="0" step="5">
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>Carbs (g)</label>
+                        <input type="number" id="carbs-goal" value="200" min="0" step="10">
+                    </div>
+                    <div class="form-group half">
+                        <label>Fat (g)</label>
+                        <input type="number" id="fat-goal" value="65" min="0" step="5">
+                    </div>
                 </div>
                 <button id="save-goals-btn" class="btn btn-primary">Save Goals</button>
             </div>
 
             <div class="settings-section">
                 <h3>Notification Times</h3>
-                <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                    Set up to 3 notification times. You'll receive reminders with your recent meals to quickly log them again.
-                </p>
+                <p class="settings-description">Get reminders to log your meals at these times.</p>
 
                 <div class="form-group">
                     <label>Time 1</label>
@@ -119,34 +201,31 @@
                     <input type="time" class="notification-time-input" value="20:00">
                 </div>
 
-                <p style="font-size: 0.813rem; color: var(--text-secondary); margin: 0.75rem 0;">
-                    Times are in your local timezone
-                </p>
+                <button id="subscribe-push-btn" class="btn btn-primary">Save Notification Times</button>
 
-                <button id="subscribe-push-btn" class="btn btn-primary" style="margin-top: 0.5rem;">
-                    Save Notification Times
-                </button>
-
-                <p style="font-size: 0.813rem; color: var(--text-secondary); margin-top: 0.75rem;">
-                    Status: <span id="push-status" style="font-weight: 600;">Not configured</span>
+                <p class="status-text">
+                    Status: <span id="push-status">Not configured</span>
                 </p>
             </div>
 
             <div class="settings-section">
                 <h3>Data Management</h3>
-                <button id="export-data-btn" class="btn btn-secondary">Export Data</button>
-                <button id="clear-data-btn" class="btn btn-danger">Clear All Data</button>
+                <div class="button-row">
+                    <button id="export-data-btn" class="btn btn-secondary">Export Data</button>
+                    <button id="clear-data-btn" class="btn btn-danger">Clear All Data</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Modal for Quick Add -->
     <div id="quick-add-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-large">
             <span class="close">&times;</span>
-            <h2>Quick Add</h2>
-            <input type="text" id="quick-search" class="search-input" placeholder="Search foods and meals...">
+            <h2>Add Food</h2>
+            <input type="text" id="quick-search" class="search-input" placeholder="Search your foods or USDA database...">
             <div id="quick-results" class="quick-results"></div>
+            <div id="usda-results" class="usda-results"></div>
         </div>
     </div>
 
@@ -168,13 +247,15 @@
                     <label>Calories *</label>
                     <input type="number" id="food-calories" required min="0" step="1">
                 </div>
-                <div class="form-group">
-                    <label>Protein (g)</label>
-                    <input type="number" id="food-protein" min="0" step="0.1" value="0">
-                </div>
-                <div class="form-group">
-                    <label>Carbs (g)</label>
-                    <input type="number" id="food-carbs" min="0" step="0.1" value="0">
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>Protein (g)</label>
+                        <input type="number" id="food-protein" min="0" step="0.1" value="0">
+                    </div>
+                    <div class="form-group half">
+                        <label>Carbs (g)</label>
+                        <input type="number" id="food-carbs" min="0" step="0.1" value="0">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Fat (g)</label>
@@ -211,14 +292,12 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Enter Quantity</h2>
-            <p id="quantity-item-name" style="margin-bottom: 1rem; color: var(--text-secondary);"></p>
+            <p id="quantity-item-name" class="modal-subtitle"></p>
             <form id="quantity-form">
                 <div class="form-group">
                     <label>Quantity (e.g., 1, 0.5, 1.5, 2)</label>
                     <input type="number" id="quantity-input" min="0.01" step="0.01" value="1" required>
-                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                        1 = full serving, 0.5 = half serving, 2 = double serving
-                    </p>
+                    <p class="form-help">1 = full serving, 0.5 = half serving, 2 = double serving</p>
                 </div>
                 <button type="submit" class="btn btn-primary">Log Food</button>
             </form>
@@ -244,13 +323,15 @@
                     <label>Calories *</label>
                     <input type="number" id="edit-food-calories" required min="0" step="1">
                 </div>
-                <div class="form-group">
-                    <label>Protein (g)</label>
-                    <input type="number" id="edit-food-protein" min="0" step="0.1" value="0">
-                </div>
-                <div class="form-group">
-                    <label>Carbs (g)</label>
-                    <input type="number" id="edit-food-carbs" min="0" step="0.1" value="0">
+                <div class="form-row">
+                    <div class="form-group half">
+                        <label>Protein (g)</label>
+                        <input type="number" id="edit-food-protein" min="0" step="0.1" value="0">
+                    </div>
+                    <div class="form-group half">
+                        <label>Carbs (g)</label>
+                        <input type="number" id="edit-food-carbs" min="0" step="0.1" value="0">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Fat (g)</label>
@@ -266,18 +347,26 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Edit Log Entry</h2>
-            <p id="edit-log-item-name" style="margin-bottom: 1rem; color: var(--text-secondary);"></p>
+            <p id="edit-log-item-name" class="modal-subtitle"></p>
             <form id="edit-log-form">
                 <input type="hidden" id="edit-log-id">
                 <div class="form-group">
                     <label>Quantity</label>
                     <input type="number" id="edit-log-quantity" min="0.01" step="0.01" value="1" required>
-                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                        1 = full serving, 0.5 = half serving, 2 = double serving
-                    </p>
+                    <p class="form-help">1 = full serving, 0.5 = half serving, 2 = double serving</p>
                 </div>
                 <button type="submit" class="btn btn-primary">Save Changes</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal for Food Details -->
+    <div id="food-details-modal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close">&times;</span>
+            <div id="food-details-content">
+                <!-- Populated by JavaScript -->
+            </div>
         </div>
     </div>
 
